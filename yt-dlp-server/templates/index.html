@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YT-DLP Download Server</title>
+    <!-- {{ url_for('static', path='/style.css') }} -->
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>YT-DLP Download Server</h1>
+        <p>Submit URLs to download videos and audio files</p>
+      </header>
+
+      <main>
+        <!-- Connection Status Indicator -->
+        <div id="connection-status" class="status-indicator connecting">
+          <span id="connection-text">Connecting...</span>
+        </div>
+
+        <!-- Download Form -->
+        <section class="download-section">
+          <h2>Submit Download Request</h2>
+          <form id="download-form" class="download-form">
+            <div class="form-group">
+              <label for="url-input">Video/Audio URL:</label>
+              <input
+                type="url"
+                id="url-input"
+                name="url"
+                placeholder="https://www.youtube.com/watch?v=..."
+                required
+              />
+            </div>
+            <button type="submit" id="submit-btn" class="submit-btn">
+              Download
+            </button>
+          </form>
+        </section>
+
+        <!-- Messages Area -->
+        <div id="messages" class="messages-area"></div>
+
+        <!-- Status Display Area -->
+        <section class="status-section">
+          <h2>Download Status</h2>
+          <div id="downloads-list" class="downloads-list">
+            <p class="no-downloads">
+              No downloads yet. Submit a URL above to get started.
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Client ID for JavaScript -->
+    <script>
+      window.CLIENT_ID = "{{ client_id }}";
+    </script>
+    <!-- {{ url_for('static', path='/app.js') }} -->
+    <script src="/static/app.js"></script>
+  </body>
+</html>

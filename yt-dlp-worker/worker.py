@@ -1,11 +1,14 @@
 # worker.py
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
 import json
 import subprocess
 import tempfile
 import shutil
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from google.cloud import pubsub_v1, storage
 from google.auth import credentials
 import requests
@@ -24,10 +27,10 @@ logging.basicConfig(
 logger = logging.getLogger('yt-dlp-worker')
 
 # Configuration
-PROJECT_ID = os.getenv('PROJECT_ID', 'your-project-id')
-SUBSCRIPTION_NAME = os.getenv('PUBSUB_SUBSCRIPTION', 'download-worker-sub')
-FASTAPI_URL = os.getenv('FASTAPI_URL', 'https://your-fastapi-url.com')
-GCS_BUCKET_NAME = os.getenv('GCS_BUCKET_NAME', 'your-bucket-name')
+PROJECT_ID = os.getenv('PROJECT_ID', 'hosting-shit')
+SUBSCRIPTION_NAME = os.getenv('PUBSUB_SUBSCRIPTION', 'yt-dlp-downloads-sub')
+FASTAPI_URL = os.getenv('FASTAPI_URL', 'https://yt-dlp-server-578977081858.us-central1.run.app/')
+GCS_BUCKET_NAME = os.getenv('GCS_BUCKET_NAME', 'hosting-shit')
 DOWNLOAD_DIR = os.getenv('DOWNLOAD_DIR', '/tmp/downloads')
 
 # Ensure download directory exists
@@ -35,31 +38,35 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 class DownloadWorker:
     def __init__(self):
-        # Initialize Google Cloud clients
-        if os.getenv('GOOGLE_APPLICATION_CREDENTIALS'):
-            # Use service account credentials if provided
+        # Get credentials from environment variable
+        credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+        
+        if credentials_path and os.path.exists(credentials_path):
+            # Use service account credentials
+            from google.oauth2 import service_account
+            credentials = service_account.Credentials.from_service_account_file(
+                credentials_path,
+                scopes=["https://www.googleapis.com/auth/cloud-platform"]
+            )
+            self.subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
+            self.storage_client = storage.Client(credentials=credentials)
+        else:
+            # Use application default credentials (when running on Google Cloud)
             self.subscriber = pubsub_v1.SubscriberClient()
             self.storage_client = storage.Client()
-        else:
-            # Use default credentials (for testing/local development)
-            self.subscriber = pubsub_v1.SubscriberClient(
-                credentials=credentials.AnonymousCredentials()
-            )
-            self.storage_client = storage.Client(
-                credentials=credentials.AnonymousCredentials()
-            )
         
         self.bucket = self.storage_client.bucket(GCS_BUCKET_NAME)
         self.subscription_path = self.subscriber.subscription_path(
             PROJECT_ID, SUBSCRIPTION_NAME
         )
         
-    def send_status_update(self, client_id, status, message=None, download_url=None):
+    def send_status_update(self, client_id, status, message=None, download_url=None, file_name=None, url=None):
         """Send status update to FastAPI server"""
         try:
             payload = {
                 "status": status,
-                "timestamp": datetime.utcnow().isoformat(),
+                "client_id": client_id,  # Include client_id in the payload
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "worker": socket.gethostname()
             }
             
@@ -68,6 +75,12 @@ class DownloadWorker:
                 
             if download_url:
                 payload["download_url"] = download_url
+                
+            if file_name:
+                payload["file_name"] = file_name
+                
+            if url:
+                payload["url"] = url
                 
             response = requests.post(
                 f"{FASTAPI_URL}/status/{client_id}",
@@ -79,6 +92,26 @@ class DownloadWorker:
         except Exception as e:
             logger.error(f"Failed to send status update: {str(e)}")
     
+    def get_format_for_platform(self, url):
+        """Get appropriate format string based on the platform"""
+        url_lower = url.lower()
+        
+        if 'instagram.com' in url_lower:
+            # Instagram often has limited formats, be more flexible
+            return 'best'
+        elif 'tiktok.com' in url_lower:
+            # TikTok usually has good format availability
+            return 'best[height<=1080]/best'
+        elif 'youtube.com' in url_lower or 'youtu.be' in url_lower:
+            # YouTube has extensive format options
+            return 'best[height<=1080]/best[ext=mp4]/best'
+        elif 'twitter.com' in url_lower or 'x.com' in url_lower:
+            # Twitter/X has limited formats
+            return 'best'
+        else:
+            # Default for other platforms
+            return 'best[height<=1080]/best'
+
     def download_file(self, url, client_id):
         """Download a file using yt-dlp"""
         temp_dir = tempfile.mkdtemp()
@@ -86,13 +119,16 @@ class DownloadWorker:
         
         try:
             # Send download started status
-            self.send_status_update(client_id, "downloading", "Download started")
+            self.send_status_update(client_id, "downloading", "Download started", url=url)
             
-            # Build yt-dlp command
+            # Get platform-specific format
+            format_selector = self.get_format_for_platform(url)
+            
+            # Build yt-dlp command with platform-appropriate format selection
             cmd = [
                 'yt-dlp',
                 '--no-playlist',
-                '--format', 'best[height<=720]',  # Limit to 720p or lower
+                '--format', format_selector,
                 '--output', output_template,
                 '--print', 'after_move:filepath',
                 '--no-progress',
@@ -100,6 +136,7 @@ class DownloadWorker:
             ]
             
             logger.info(f"Executing command: {' '.join(cmd)}")
+            logger.info(f"Using format selector: {format_selector} for URL: {url}")
             
             # Execute yt-dlp
             result = subprocess.run(
@@ -112,43 +149,76 @@ class DownloadWorker:
             if result.returncode != 0:
                 error_msg = f"Download failed: {result.stderr}"
                 logger.error(error_msg)
-                self.send_status_update(client_id, "error", error_msg)
-                return None
+                
+                # If format error, try with just 'best' format
+                if "Requested format is not available" in result.stderr:
+                    logger.info("Retrying with 'best' format...")
+                    self.send_status_update(client_id, "downloading", "Retrying with different format...", url=url)
+                    
+                    # Retry with just 'best' format
+                    cmd_retry = [
+                        'yt-dlp',
+                        '--no-playlist',
+                        '--format', 'best',
+                        '--output', output_template,
+                        '--print', 'after_move:filepath',
+                        '--no-progress',
+                        url
+                    ]
+                    
+                    logger.info(f"Retry command: {' '.join(cmd_retry)}")
+                    result_retry = subprocess.run(
+                        cmd_retry,
+                        capture_output=True,
+                        text=True,
+                        timeout=3600
+                    )
+                    
+                    if result_retry.returncode == 0:
+                        # Success with retry
+                        file_path = result_retry.stdout.strip()
+                        if file_path and os.path.exists(file_path):
+                            logger.info(f"Download completed with retry: {file_path}")
+                            self.send_status_update(client_id, "processing", "Uploading to cloud storage", url=url)
+                            return file_path, temp_dir
+                    
+                    # If retry also failed, log both errors
+                    logger.error(f"Retry also failed: {result_retry.stderr}")
+                    error_msg = f"Download failed even with fallback format. Original error: {result.stderr}"
+                
+                self.send_status_update(client_id, "error", error_msg, url=url)
+                return None, temp_dir
                 
             # Get the path of the downloaded file
             file_path = result.stdout.strip()
             if not file_path or not os.path.exists(file_path):
                 error_msg = "Download completed but file not found"
                 logger.error(error_msg)
-                self.send_status_update(client_id, "error", error_msg)
-                return None
+                self.send_status_update(client_id, "error", error_msg, url=url)
+                return None, temp_dir
                 
             logger.info(f"Download completed: {file_path}")
-            self.send_status_update(client_id, "processing", "Uploading to cloud storage")
+            self.send_status_update(client_id, "processing", "Uploading to cloud storage", url=url)
             
-            return file_path
+            return file_path, temp_dir
             
         except subprocess.TimeoutExpired:
             error_msg = "Download timed out after 1 hour"
             logger.error(error_msg)
-            self.send_status_update(client_id, "error", error_msg)
-            return None
+            self.send_status_update(client_id, "error", error_msg, url=url)
+            return None, temp_dir
         except Exception as e:
             error_msg = f"Download error: {str(e)}"
             logger.error(error_msg)
-            self.send_status_update(client_id, "error", error_msg)
-            return None
-        finally:
-            # Clean up temp directory if file was moved
-            if os.path.exists(temp_dir) and not os.path.exists(file_path):
-                shutil.rmtree(temp_dir, ignore_errors=True)
+            self.send_status_update(client_id, "error", error_msg, url=url)
+            return None, temp_dir
     
-    def upload_to_gcs(self, file_path, client_id):
+    def upload_to_gcs(self, file_path, client_id, url=None):
         """Upload file to Google Cloud Storage"""
         try:
             # Generate a unique filename
             filename = os.path.basename(file_path)
-            unique_filename = f"{client_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{filename}"
+            unique_filename = f"{client_id}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{filename}"
             
             # Upload to GCS
             blob = self.bucket.blob(unique_filename)
@@ -161,20 +231,17 @@ class DownloadWorker:
             )
             
             logger.info(f"File uploaded to GCS: {signed_url}")
-            return signed_url
+            return signed_url, unique_filename
             
         except Exception as e:
             error_msg = f"Upload failed: {str(e)}"
             logger.error(error_msg)
-            self.send_status_update(client_id, "error", error_msg)
-            return None
-        finally:
-            # Clean up downloaded file
-            if os.path.exists(file_path):
-                os.remove(file_path)
+            self.send_status_update(client_id, "error", error_msg, url=url)
+            return None, None
     
     def process_message(self, message):
         """Process a Pub/Sub message"""
+        temp_dir = None
         try:
             data = json.loads(message.data.decode('utf-8'))
             url = data.get('url')
@@ -182,36 +249,40 @@ class DownloadWorker:
             
             if not url or not client_id:
                 logger.error("Invalid message: missing url or client_id")
-                message.nack()  # Mark for retry
+                message.ack()  # Acknowledge invalid messages
                 return
             
             logger.info(f"Processing download request from {client_id}: {url}")
             
             # Download the file
-            file_path = self.download_file(url, client_id)
-            if not file_path:
-                message.nack()  # Mark for retry
-                return
-            
-            # Upload to GCS
-            download_url = self.upload_to_gcs(file_path, client_id)
-            if not download_url:
-                message.nack()  # Mark for retry
-                return
-            
-            # Send success status
-            self.send_status_update(client_id, "completed", "Download completed", download_url)
-            
-            # Acknowledge the message
-            message.ack()
-            logger.info(f"Message processed successfully: {message.message_id}")
-            
+            file_path, temp_dir = self.download_file(url, client_id)
+            if file_path:
+                # Upload to GCS
+                download_url, file_name = self.upload_to_gcs(file_path, client_id, url)
+                if download_url:
+                    # Send success status
+                    self.send_status_update(
+                        client_id,
+                        "completed",
+                        f"Download completed successfully",
+                        download_url,
+                        file_name,
+                        url
+                    )
+
         except json.JSONDecodeError:
             logger.error("Invalid JSON in message")
-            message.ack()  # Ack to avoid retrying invalid messages
         except Exception as e:
             logger.error(f"Error processing message: {str(e)}")
-            message.nack()  # Mark for retry
+        finally:
+            # Clean up temp directory
+            if temp_dir and os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                logger.info(f"Cleaned up temp directory: {temp_dir}")
+
+            # Acknowledge the message
+            message.ack()
+            logger.info(f"Message processed: {message.message_id}")
     
     def run(self):
         """Start the worker"""
