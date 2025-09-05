@@ -258,9 +258,6 @@ class DownloadManager {
         // Clear the form
         this.urlInput.value = '';
         
-        // Show success message
-        this.showSuccess(`Download request submitted successfully for: ${url}`);
-        
         // Add to downloads list if not already present
         const downloadId = result.id || this.generateDownloadId();
         const download = {
@@ -624,13 +621,8 @@ class DownloadManager {
             this.reconnectMessage = null;
         }
         
-        // Show success message only if this was a reconnection
-        if (this.hasBeenDisconnected) {
-            this.showSuccess('Reconnected to server. Real-time updates are now active.');
-            this.hasBeenDisconnected = false;
-        } else {
-            this.showSuccess('Connected to server. Real-time updates are now active.');
-        }
+        // Connection status is already shown in the status indicator, no need for popup messages
+        this.hasBeenDisconnected = false;
     }
 
     /**
@@ -653,9 +645,7 @@ class DownloadManager {
                     break;
                 case 'connection':
                     console.log('Connection message:', data.message);
-                    if (data.message) {
-                        this.showMessage(`Connection: ${data.message}`, 'info');
-                    }
+                    // Connection status is already shown in the status indicator
                     break;
                 case 'error':
                     this.showError(`Server error: ${data.message || 'Unknown server error occurred'}`);
@@ -707,7 +697,6 @@ class DownloadManager {
         
         if (event.wasClean) {
             this.updateConnectionStatus('disconnected', 'Connection closed');
-            this.showMessage('Connection to server closed.', 'info');
         } else {
             this.updateConnectionStatus('disconnected', 'Connection lost');
             
@@ -897,34 +886,8 @@ class DownloadManager {
      * Show notifications for significant status changes
      */
     showStatusNotification(download, message) {
-        const status = download.status;
-        
-        // Only show notifications for significant events
-        if (status === 'completed') {
-            this.showSuccess(`Download completed: ${this.truncateUrl(download.url)}`);
-            
-            // Show persistent notification with download link
-            if (download.downloadUrl) {
-                const linkMessage = document.createElement('div');
-                linkMessage.className = 'message message-success persistent';
-                linkMessage.innerHTML = `
-                    <strong>Download Ready!</strong><br>
-                    <a href="${download.downloadUrl}" target="_blank" rel="noopener noreferrer" class="download-link">
-                        📥 ${download.fileName || 'Download File'}
-                    </a>
-                    <button class="message-close" onclick="this.parentElement.remove()">&times;</button>
-                `;
-                this.messagesArea.appendChild(linkMessage);
-            }
-        } else if (status === 'error') {
-            this.showError(`Download failed: ${this.truncateUrl(download.url)} - ${message}`);
-        } else if (status === 'downloading' && download.progress === 0) {
-            // Only show "started" notification once when download begins
-            if (!download.notifiedStarted) {
-                this.showMessage(`Download started: ${this.truncateUrl(download.url)}`, 'info');
-                download.notifiedStarted = true;
-            }
-        }
+        // Popup notifications removed - status updates are now only shown in the download status list
+        // This keeps the UI cleaner and less intrusive while still providing all status information
     }
 
     /**
@@ -1035,7 +998,6 @@ class DownloadManager {
             
             // Attempt to reconnect
             this.connectWebSocket();
-            this.showMessage('Attempting to reconnect...', 'info');
         });
     }
 

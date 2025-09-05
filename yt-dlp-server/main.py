@@ -14,6 +14,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from google.cloud import pubsub_v1
 from google.auth import credentials
+from google.oauth2 import service_account
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -50,10 +51,33 @@ async def ping_websockets(app: FastAPI):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    app.state.publisher = pubsub_v1.PublisherClient(
-        credentials=credentials.AnonymousCredentials() if os.getenv("ENV") == "local" else None
-    )
+    # Startup - Initialize Google Cloud credentials
+    creds = None
+    if os.getenv("ENV") == "local":
+        creds = credentials.AnonymousCredentials()
+    else:
+        # Try to load service account credentials from file, or use default
+        creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        
+        if creds_path:
+            logger.info(f"GOOGLE_APPLICATION_CREDENTIALS: {creds_path}")
+            if os.path.exists(creds_path):
+                logger.info(f"Loading service account credentials from: {creds_path}")
+                try:
+                    creds = service_account.Credentials.from_service_account_file(creds_path)
+                    logger.info("Service account credentials loaded successfully")
+                except Exception as e:
+                    logger.error(f"Failed to load service account credentials: {e}")
+                    raise
+            else:
+                logger.error(f"Service account key file not found at: {creds_path}")
+                raise FileNotFoundError(f"Service account key file not found at: {creds_path}")
+        else:
+            # Use default credentials (for Cloud Run)
+            logger.info("Using default Google Cloud credentials")
+            creds = None  # This will use Application Default Credentials
+    
+    app.state.publisher = pubsub_v1.PublisherClient(credentials=creds)
     app.state.topic_path = app.state.publisher.topic_path(
         os.getenv("PROJECT_ID"), os.getenv("PUBSUB_TOPIC")
     )
@@ -102,7 +126,8 @@ async def submit_download_request(request: DownloadRequest):
         logger.info(f"Published message for client {request.client_id}")
         return {"message": "Download request submitted successfully"}
     except Exception as e:
-        logger.error(f"Failed to publish message: {e}")
+        logger.error(f"Failed to publish message to topic {app.state.topic_path}: {e}")
+        logger.error(f"Project ID: {os.getenv('PROJECT_ID')}, Topic: {os.getenv('PUBSUB_TOPIC')}")
         raise HTTPException(status_code=500, detail=f"Failed to submit request: {e}")
 
 @app.websocket("/ws/{client_id}")
