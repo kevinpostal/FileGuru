@@ -1,0 +1,28 @@
+# Cookies and authentication files
+cookies.txt
+cookies.json
+*.cookies
+
+# Environment files
+.env.local
+.env.production
+
+# Logs
+*.log
+logs/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+venv/
+.venv_*/
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/

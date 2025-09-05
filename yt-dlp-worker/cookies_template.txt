@@ -1,0 +1,22 @@
+# Netscape HTTP Cookie File
+# This is a template - replace with your actual cookies from YouTube
+# 
+# Format: domain	flag	path	secure	expiration	name	value
+# 
+# Instructions:
+# 1. Go to YouTube.com (logged in)
+# 2. Press F12 → Application → Cookies → https://www.youtube.com
+# 3. Copy the important cookies below (especially session cookies)
+# 4. Replace this template with your actual cookies
+# 5. Rename this file to cookies.txt
+#
+# Example format:
+# .youtube.com	TRUE	/	FALSE	1735689600	VISITOR_INFO1_LIVE	your_visitor_info_here
+# .youtube.com	TRUE	/	TRUE	1735689600	LOGIN_INFO	your_login_info_here
+# .youtube.com	TRUE	/	TRUE	1735689600	SAPISID	your_sapisid_here
+# .youtube.com	TRUE	/	TRUE	1735689600	APISID	your_apisid_here
+# .youtube.com	TRUE	/	TRUE	1735689600	SSID	your_ssid_here
+# .youtube.com	TRUE	/	TRUE	1735689600	HSID	your_hsid_here
+# .youtube.com	TRUE	/	TRUE	1735689600	SID	your_sid_here
+
+# Add your actual cookies below this line:

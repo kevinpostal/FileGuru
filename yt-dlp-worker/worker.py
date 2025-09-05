@@ -32,6 +32,7 @@ SUBSCRIPTION_NAME = os.getenv('PUBSUB_SUBSCRIPTION', 'yt-dlp-downloads-sub')
 FASTAPI_URL = os.getenv('FASTAPI_URL', 'https://yt-dlp-server-578977081858.us-central1.run.app/')
 GCS_BUCKET_NAME = os.getenv('GCS_BUCKET_NAME', 'hosting-shit')
 DOWNLOAD_DIR = os.getenv('DOWNLOAD_DIR', '/tmp/downloads')
+COOKIES_FILE = os.getenv('COOKIES_FILE', 'cookies.txt')
 
 # Ensure download directory exists
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
@@ -135,6 +136,16 @@ class DownloadWorker:
                 url
             ]
             
+            # Add cookies if available
+            if os.path.exists(COOKIES_FILE):
+                cmd.extend(['--cookies', COOKIES_FILE])
+                logger.info(f"Using cookies file: {COOKIES_FILE}")
+            else:
+                logger.warning(f"Cookies file not found: {COOKIES_FILE}")
+                # Try to use browser cookies as fallback
+                cmd.extend(['--cookies-from-browser', 'chrome'])
+                logger.info("Attempting to use cookies from Chrome browser")
+            
             logger.info(f"Executing command: {' '.join(cmd)}")
             logger.info(f"Using format selector: {format_selector} for URL: {url}")
             
@@ -165,6 +176,12 @@ class DownloadWorker:
                         '--no-progress',
                         url
                     ]
+                    
+                    # Add cookies to retry command too
+                    if os.path.exists(COOKIES_FILE):
+                        cmd_retry.extend(['--cookies', COOKIES_FILE])
+                    else:
+                        cmd_retry.extend(['--cookies-from-browser', 'chrome'])
                     
                     logger.info(f"Retry command: {' '.join(cmd_retry)}")
                     result_retry = subprocess.run(
