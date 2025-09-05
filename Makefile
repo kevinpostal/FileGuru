@@ -1,0 +1,203 @@
+# Root Makefile for yt-dlp project management
+# Manages both worker and server components
+
+# Variables
+PYTHON = python3
+PIP = pip3
+VENV_WORKER = yt-dlp-worker/.venv_3.13.0
+VENV_SERVER = yt-dlp-server/.venv_3.13.0
+WORKER_DIR = yt-dlp-worker
+SERVER_DIR = yt-dlp-server
+
+# Colors for output
+GREEN = \033[0;32m
+YELLOW = \033[1;33m
+RED = \033[0;31m
+NC = \033[0m # No Color
+
+# Default target
+.PHONY: help
+help:
+	@echo "$(GREEN)yt-dlp Project Management$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Setup Commands:$(NC)"
+	@echo "  setup           - Setup both worker and server environments"
+	@echo "  setup-worker    - Setup worker environment only"
+	@echo "  setup-server    - Setup server environment only"
+	@echo ""
+	@echo "$(YELLOW)Development Commands:$(NC)"
+	@echo "  run-worker      - Run worker locally"
+	@echo "  run-server      - Run server locally"
+	@echo "  test-worker     - Run worker tests"
+	@echo "  test-server     - Run server tests"
+	@echo ""
+	@echo "$(YELLOW)Docker Commands (Server):$(NC)"
+	@echo "  docker-build    - Build server Docker image"
+	@echo "  docker-run      - Run server in Docker"
+	@echo "  docker-stop     - Stop Docker container"
+	@echo "  docker-logs     - Show Docker logs"
+	@echo "  docker-clean    - Clean Docker resources"
+	@echo ""
+	@echo "$(YELLOW)Deployment Commands:$(NC)"
+	@echo "  deploy          - Deploy server to Google Cloud Run"
+	@echo "  deploy-local    - Deploy server locally with Docker"
+	@echo ""
+	@echo "$(YELLOW)Utility Commands:$(NC)"
+	@echo "  clean           - Clean all build artifacts"
+	@echo "  install-deps    - Install/update dependencies"
+	@echo "  check-env       - Check environment setup"
+	@echo "  export-cookies  - Export cookies from browser"
+
+# Setup commands
+.PHONY: setup
+setup: setup-worker setup-server
+	@echo "$(GREEN)✓ Both environments setup complete$(NC)"
+
+.PHONY: setup-worker
+setup-worker:
+	@echo "$(YELLOW)Setting up worker environment...$(NC)"
+	@cd $(WORKER_DIR) && $(PYTHON) -m venv .venv_3.13.0
+	@cd $(WORKER_DIR) && .venv_3.13.0/Scripts/pip install -r requirements.txt
+	@echo "$(GREEN)✓ Worker environment ready$(NC)"
+
+.PHONY: setup-server
+setup-server:
+	@echo "$(YELLOW)Setting up server environment...$(NC)"
+	@cd $(SERVER_DIR) && $(PYTHON) -m venv .venv_3.13.0
+	@cd $(SERVER_DIR) && .venv_3.13.0/Scripts/pip install -r requirements.txt
+	@echo "$(GREEN)✓ Server environment ready$(NC)"
+
+# Development commands
+.PHONY: run-worker
+run-worker:
+	@echo "$(YELLOW)Starting worker...$(NC)"
+	@cd $(WORKER_DIR) && .venv_3.13.0/Scripts/python worker.py
+
+.PHONY: run-server
+run-server:
+	@echo "$(YELLOW)Starting server...$(NC)"
+	@cd $(SERVER_DIR) && .venv_3.13.0/Scripts/python -m uvicorn main:app --reload --host 0.0.0.0 --port 8080
+
+# Testing commands
+.PHONY: test-worker
+test-worker:
+	@echo "$(YELLOW)Running worker tests...$(NC)"
+	@cd $(WORKER_DIR) && .venv_3.13.0/Scripts/python test_cookies.py
+	@cd $(WORKER_DIR) && .venv_3.13.0/Scripts/python test_auth.py
+
+.PHONY: test-server
+test-server:
+	@echo "$(YELLOW)Running server tests...$(NC)"
+	@echo "$(RED)No server tests configured yet$(NC)"
+
+# Docker commands (delegate to server Makefile)
+.PHONY: docker-build
+docker-build:
+	@echo "$(YELLOW)Building Docker image...$(NC)"
+	@cd $(SERVER_DIR) && make build
+
+.PHONY: docker-run
+docker-run:
+	@echo "$(YELLOW)Running Docker container...$(NC)"
+	@cd $(SERVER_DIR) && make run
+
+.PHONY: docker-stop
+docker-stop:
+	@echo "$(YELLOW)Stopping Docker container...$(NC)"
+	@cd $(SERVER_DIR) && make stop
+
+.PHONY: docker-logs
+docker-logs:
+	@cd $(SERVER_DIR) && make logs
+
+.PHONY: docker-restart
+docker-restart:
+	@cd $(SERVER_DIR) && make restart
+
+.PHONY: docker-clean
+docker-clean:
+	@echo "$(YELLOW)Cleaning Docker resources...$(NC)"
+	@cd $(SERVER_DIR) && make clean
+
+# Utility commands
+.PHONY: clean
+clean:
+	@echo "$(YELLOW)Cleaning build artifacts...$(NC)"
+	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type f -name "*.pyc" -delete 2>/dev/null || true
+	@find . -type f -name "*.pyo" -delete 2>/dev/null || true
+	@find . -type f -name "*.pyd" -delete 2>/dev/null || true
+	@find . -type f -name ".coverage" -delete 2>/dev/null || true
+	@find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+	@echo "$(GREEN)✓ Cleanup complete$(NC)"
+
+.PHONY: install-deps
+install-deps:
+	@echo "$(YELLOW)Installing/updating dependencies...$(NC)"
+	@cd $(WORKER_DIR) && .venv_3.13.0/Scripts/pip install -r requirements.txt --upgrade
+	@cd $(SERVER_DIR) && .venv_3.13.0/Scripts/pip install -r requirements.txt --upgrade
+	@echo "$(GREEN)✓ Dependencies updated$(NC)"
+
+.PHONY: check-env
+check-env:
+	@echo "$(YELLOW)Checking environment setup...$(NC)"
+	@echo "Worker environment:"
+	@if [ -d "$(WORKER_DIR)/.venv_3.13.0" ]; then \
+		echo "  $(GREEN)✓ Virtual environment exists$(NC)"; \
+	else \
+		echo "  $(RED)✗ Virtual environment missing$(NC)"; \
+	fi
+	@if [ -f "$(WORKER_DIR)/.env" ]; then \
+		echo "  $(GREEN)✓ Environment file exists$(NC)"; \
+	else \
+		echo "  $(RED)✗ Environment file missing$(NC)"; \
+	fi
+	@if [ -f "$(WORKER_DIR)/cookies.txt" ]; then \
+		echo "  $(GREEN)✓ Cookies file exists$(NC)"; \
+	else \
+		echo "  $(YELLOW)⚠ Cookies file missing$(NC)"; \
+	fi
+	@echo "Server environment:"
+	@if [ -d "$(SERVER_DIR)/.venv_3.13.0" ]; then \
+		echo "  $(GREEN)✓ Virtual environment exists$(NC)"; \
+	else \
+		echo "  $(RED)✗ Virtual environment missing$(NC)"; \
+	fi
+	@if [ -f "$(SERVER_DIR)/.env" ]; then \
+		echo "  $(GREEN)✓ Environment file exists$(NC)"; \
+	else \
+		echo "  $(YELLOW)⚠ Environment file missing$(NC)"; \
+	fi
+
+.PHONY: export-cookies
+export-cookies:
+	@echo "$(YELLOW)Exporting cookies from browser...$(NC)"
+	@cd $(WORKER_DIR) && .venv_3.13.0/Scripts/python export_cookies.py
+
+# Development workflow shortcuts
+.PHONY: dev-worker
+dev-worker: setup-worker run-worker
+
+.PHONY: dev-server
+dev-server: setup-server run-server
+
+.PHONY: dev-both
+dev-both: setup
+	@echo "$(YELLOW)Use 'make run-worker' and 'make run-server' in separate terminals$(NC)"
+
+# Production deployment
+.PHONY: deploy
+deploy:
+	@echo "$(YELLOW)Deploying to Google Cloud Run...$(NC)"
+	@cd $(SERVER_DIR) && gcloud run deploy yt-dlp-server \
+		--source . \
+		--platform managed \
+		--region us-central1 \
+		--allow-unauthenticated \
+		--set-env-vars="PROJECT_ID=hosting-shit,PUBSUB_TOPIC=yt-dlp-downloads,ENV=production"
+	@echo "$(GREEN)✓ Deployment complete$(NC)"
+
+# Local Docker deployment
+.PHONY: deploy-local
+deploy-local: docker-build docker-run
+	@echo "$(GREEN)✓ Local Docker deployment complete$(NC)"
