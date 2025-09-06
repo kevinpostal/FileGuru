@@ -307,22 +307,34 @@ class DownloadWorker:
                 # Read stderr for progress updates
                 stderr_line = process.stderr.readline()
                 if stderr_line:
+                    stderr_line = stderr_line.strip()
                     stderr_lines.append(stderr_line)
-                    self.parse_progress_line(stderr_line.strip(), client_id, url)
+                    self.parse_progress_line(stderr_line, client_id, url)
                 
-                # Read stdout for file path
+                # Read stdout for file path (this is where the final file path will be)
                 stdout_line = process.stdout.readline()
                 if stdout_line:
+                    stdout_line = stdout_line.strip()
                     stdout_lines.append(stdout_line)
+                    # Log stdout lines to help debug file path detection
+                    if stdout_line and not stdout_line.startswith('['):
+                        logger.info(f"Stdout line (potential file path): {stdout_line}")
             
             # Get any remaining output
             remaining_stdout, remaining_stderr = process.communicate()
             if remaining_stdout:
-                stdout_lines.extend(remaining_stdout.splitlines())
+                for line in remaining_stdout.splitlines():
+                    line = line.strip()
+                    if line:
+                        stdout_lines.append(line)
+                        if not line.startswith('['):
+                            logger.info(f"Remaining stdout line (potential file path): {line}")
             if remaining_stderr:
-                stderr_lines.extend(remaining_stderr.splitlines())
                 for line in remaining_stderr.splitlines():
-                    self.parse_progress_line(line.strip(), client_id, url)
+                    line = line.strip()
+                    if line:
+                        stderr_lines.append(line)
+                        self.parse_progress_line(line, client_id, url)
             
             # Create result object similar to subprocess.run
             class ProcessResult:
@@ -408,8 +420,27 @@ class DownloadWorker:
                     )
                     
                     if result_retry.returncode == 0:
-                        # Success with retry
-                        file_path = result_retry.stdout.strip()
+                        # Success with retry - use same file detection logic
+                        file_path = None
+                        for line in reversed(stdout_lines_retry):
+                            if line and not line.startswith('[') and os.path.exists(line):
+                                file_path = line
+                                break
+                        
+                        if not file_path:
+                            potential_path = result_retry.stdout.strip()
+                            if potential_path and os.path.exists(potential_path):
+                                file_path = potential_path
+                        
+                        if not file_path:
+                            for root, dirs, files in os.walk(temp_dir):
+                                for file in files:
+                                    if not file.startswith('.'):
+                                        file_path = os.path.join(root, file)
+                                        break
+                                if file_path:
+                                    break
+                        
                         if file_path and os.path.exists(file_path):
                             logger.info(f"Download completed with retry: {file_path}")
                             self.send_status_update(client_id, "processing", "Uploading to cloud storage", url=url)
@@ -423,10 +454,35 @@ class DownloadWorker:
                 return None, temp_dir
                 
             # Get the path of the downloaded file
-            file_path = result.stdout.strip()
+            # Look for the file path in stdout lines (should be the last non-empty line that's not a log message)
+            file_path = None
+            for line in reversed(stdout_lines):
+                if line and not line.startswith('[') and os.path.exists(line):
+                    file_path = line
+                    break
+            
+            # Fallback: try the entire stdout as a single path
+            if not file_path:
+                potential_path = result.stdout.strip()
+                if potential_path and os.path.exists(potential_path):
+                    file_path = potential_path
+            
+            # Fallback: look for files in the temp directory
+            if not file_path:
+                logger.warning("File path not found in stdout, searching temp directory...")
+                for root, dirs, files in os.walk(temp_dir):
+                    for file in files:
+                        if not file.startswith('.'):  # Skip hidden files
+                            file_path = os.path.join(root, file)
+                            logger.info(f"Found file in temp directory: {file_path}")
+                            break
+                    if file_path:
+                        break
+            
             if not file_path or not os.path.exists(file_path):
-                error_msg = "Download completed but file not found"
+                error_msg = f"Download completed but file not found. Stdout: {result.stdout[:200]}..."
                 logger.error(error_msg)
+                logger.error(f"Temp directory contents: {os.listdir(temp_dir) if os.path.exists(temp_dir) else 'N/A'}")
                 self.send_status_update(client_id, "error", error_msg, url=url)
                 return None, temp_dir
                 
