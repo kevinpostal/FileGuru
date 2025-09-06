@@ -230,6 +230,25 @@ class DownloadWorker:
             self.send_status_update(client_id, "error", error_msg, url=url)
             return None, temp_dir
     
+    def create_tinyurl(self, long_url):
+        """Create a TinyURL short link for the given URL"""
+        try:
+            tinyurl_api = "http://tinyurl.com/api-create.php"
+            response = requests.get(tinyurl_api, params={'url': long_url}, timeout=10)
+            response.raise_for_status()
+            
+            short_url = response.text.strip()
+            if short_url.startswith('http'):
+                logger.info(f"Created TinyURL: {short_url}")
+                return short_url
+            else:
+                logger.warning(f"TinyURL API returned unexpected response: {short_url}")
+                return long_url
+                
+        except Exception as e:
+            logger.error(f"Failed to create TinyURL: {str(e)}")
+            return long_url  # Return original URL if shortening fails
+
     def upload_to_gcs(self, file_path, client_id, url=None):
         """Upload file to Google Cloud Storage"""
         try:
@@ -247,8 +266,12 @@ class DownloadWorker:
                 version="v4"
             )
             
+            # Create TinyURL short link
+            short_url = self.create_tinyurl(signed_url)
+            
             logger.info(f"File uploaded to GCS: {signed_url}")
-            return signed_url, unique_filename
+            logger.info(f"Short URL created: {short_url}")
+            return short_url, unique_filename
             
         except Exception as e:
             error_msg = f"Upload failed: {str(e)}"
