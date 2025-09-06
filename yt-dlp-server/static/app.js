@@ -815,6 +815,19 @@ class DownloadManager {
                 download.downloadUrl = download_url;
             }
             
+            // Update additional progress data
+            if (data.download_speed) {
+                download.downloadSpeed = data.download_speed;
+            }
+            
+            if (data.eta) {
+                download.eta = data.eta;
+            }
+            
+            if (data.file_size) {
+                download.fileSize = data.file_size;
+            }
+            
             // Update timestamp for latest activity
             download.lastUpdate = new Date();
             
@@ -823,6 +836,232 @@ class DownloadManager {
             
             // Update the downloads list display
             this.updateDownloadsList();
+            
+            // Show notification for significant status changes
+            this.showStatusNotification(download, message);
+        } else {
+            // If we can't associate with a specific download, show general message
+            if (message) {
+                this.showMessage(`Server: ${message}`, 'info');
+            }
+        }
+    }
+    
+    /**
+     * Parse additional information from status messages
+     */
+    parseStatusMessage(download, message) {
+        if (!message) return;
+        
+        const lowerMessage = message.toLowerCase();
+        
+        // Extract progress percentage from message if present
+        const progressMatch = message.match(/(\d+(?:\.\d+)?)%/);
+        if (progressMatch) {
+            const progressValue = parseFloat(progressMatch[1]);
+            download.progress = Math.max(0, Math.min(100, progressValue));
+        }
+        
+        // Extract file size information
+        const sizeMatch = message.match(/(\d+(?:\.\d+)?)\s*(MB|GB|KB|bytes?)/i);
+        if (sizeMatch) {
+            download.fileSize = `${sizeMatch[1]} ${sizeMatch[2]}`;
+        }
+        
+        // Extract download speed information
+        const speedMatch = message.match(/(\d+(?:\.\d+)?)\s*(MB\/s|KB\/s|B\/s)/i);
+        if (speedMatch) {
+            download.downloadSpeed = `${speedMatch[1]} ${speedMatch[2]}`;
+        }
+        
+        // Extract ETA information
+        const etaMatch = message.match(/ETA\s+(\d+:\d+(?::\d+)?)/i);
+        if (etaMatch) {
+            download.eta = etaMatch[1];
+        }
+        
+        // Determine status from message content if not explicitly provided
+        if (!download.status || download.status === 'pending') {
+            if (lowerMessage.includes('downloading') || lowerMessage.includes('progress')) {
+                download.status = 'downloading';
+            } else if (lowerMessage.includes('completed') || lowerMessage.includes('finished')) {
+                download.status = 'completed';
+                download.progress = 100;
+            } else if (lowerMessage.includes('error') || lowerMessage.includes('failed')) {
+                download.status = 'error';
+            } else if (lowerMessage.includes('starting') || lowerMessage.includes('initiated')) {
+                download.status = 'downloading';
+            }
+        }
+    }
+    
+    /**
+     * Show notifications for significant status changes
+     */
+    showStatusNotification(download, message) {
+        // Popup notifications removed - status updates are now only shown in the download status list
+        // This keeps the UI cleaner and less intrusive while still providing all status information
+    }
+
+    /**
+     * Update connection status indicator
+     */
+    updateConnectionStatus(status, message) {
+        // Remove existing status classes
+        this.connectionStatus.classList.remove('connected', 'connecting', 'disconnected');
+        
+        // Add new status class
+        this.connectionStatus.classList.add(status);
+        
+        // Update status text
+        this.connectionText.textContent = message;
+        
+        console.log(`Connection status updated: ${status} - ${message}`);
+    }
+
+    /**
+     * Schedule WebSocket reconnection with exponential backoff
+     */
+    scheduleReconnect() {
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.log('Max reconnection attempts reached');
+            this.updateConnectionStatus('disconnected', 'Connection failed - please refresh page');
+            this.showError('Unable to connect to server after multiple attempts. Please check your internet connection and refresh the page.');
+            
+            // Offer manual reconnection option
+            this.showReconnectOption();
+            return;
+        }
+
+        this.reconnectAttempts++;
+        const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
+        
+        console.log(`Scheduling reconnection attempt ${this.reconnectAttempts} in ${delay}ms`);
+        
+        // Show countdown in status
+        let remainingSeconds = Math.ceil(delay / 1000);
+        this.updateConnectionStatus('connecting', `Reconnecting in ${remainingSeconds}s... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+        
+        // Update countdown every second
+        const countdownInterval = setInterval(() => {
+            remainingSeconds--;
+            if (remainingSeconds > 0) {
+                this.updateConnectionStatus('connecting', `Reconnecting in ${remainingSeconds}s... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+            } else {
+                clearInterval(countdownInterval);
+                this.updateConnectionStatus('connecting', `Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+            }
+        }, 1000);
+        
+        setTimeout(() => {
+            clearInterval(countdownInterval);
+            
+            if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
+                // Already connected, no need to reconnect
+                return;
+            }
+            
+            this.connectWebSocket();
+        }, delay);
+    }
+
+    /**
+     * Show manual reconnection option when auto-reconnect fails
+     */
+    showReconnectOption() {
+        const reconnectDiv = document.createElement('div');
+        reconnectDiv.className = 'message message-warning';
+        reconnectDiv.innerHTML = `
+            Connection lost. Real-time updates are disabled.
+            <button class="reconnect-btn" onclick="window.downloadManager.manualReconnect()">Try Again</button>
+        `;
+        
+        this.messagesArea.appendChild(reconnectDiv);
+        
+        // Store reference for removal on successful reconnection
+        this.reconnectMessage = reconnectDiv;
+    }
+
+    /**
+     * Manual reconnection triggered by user
+     */
+    manualReconnect() {
+        // Reset reconnection attempts
+        this.reconnectAttempts = 0;
+        this.reconnectDelay = 1000;
+        
+        // Remove manual reconnect message
+        if (this.reconnectMessage && this.reconnectMessage.parentNode) {
+            this.reconnectMessage.remove();
+            this.reconnectMessage = null;
+        }
+        
+        // Close existing connection if any
+        if (this.websocket) {
+            this.websocket.close();
+            this.websocket = null;
+        }
+        
+        // Check network connectivity before attempting reconnection
+        this.checkNetworkConnectivity().then(isOnline => {
+            if (!isOnline) {
+                this.showError('No internet connection detected. Please check your network connection.');
+                return;
+            }
+            
+            // Attempt to reconnect
+            this.connectWebSocket();
+        });
+    }
+
+    /**
+     * Check network connectivity
+     */
+    async checkNetworkConnectivity() {
+        if (!navigator.onLine) {
+            return false;
+        }
+        
+        try {
+            // Try to fetch a small resource from the same origin
+            const response = await fetch('/static/style.css', {
+                method: 'HEAD',
+                cache: 'no-cache'
+            });
+            return response.ok;
+        } catch (error) {
+            console.log('Network connectivity check failed:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Close WebSocket connection
+     */
+    disconnectWebSocket() {
+        if (this.websocket) {
+            console.log('Closing WebSocket connection');
+            this.websocket.close(1000, 'Client disconnecting');
+            this.websocket = null;
+        }
+    }
+}
+
+// Initialize the download manager when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof window.CLIENT_ID !== 'undefined') {
+        window.downloadManager = new DownloadManager(window.CLIENT_ID);
+    } else {
+        console.error('CLIENT_ID not found. Make sure the server is providing the client ID.');
+    }
+});
+
+// Clean up WebSocket connection when page is unloaded
+window.addEventListener('beforeunload', () => {
+    if (window.downloadManager && window.downloadManager.websocket) {
+        window.downloadManager.disconnectWebSocket();
+    }
+});teDownloadsList();
             
             // Show notification for significant status changes
             this.showStatusNotification(download, message);

@@ -357,6 +357,7 @@ main {
 /* Status-based item styling */
 .download-item.status-downloading {
     border-left: 4px solid #3498db;
+    animation: pulse 2s infinite;
 }
 
 .download-item.status-completed {
@@ -370,6 +371,12 @@ main {
 
 .download-item.status-pending {
     border-left: 4px solid #f39c12;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(52, 152, 219, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0); }
 }
 
 /* Download Header */

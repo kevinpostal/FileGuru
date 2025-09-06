@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 import shutil
 import logging
+import re
 from datetime import datetime, timezone
 from google.cloud import pubsub_v1, storage
 from google.auth import credentials
@@ -61,7 +62,7 @@ class DownloadWorker:
             PROJECT_ID, SUBSCRIPTION_NAME
         )
         
-    def send_status_update(self, client_id, status, message=None, download_url=None, file_name=None, url=None):
+    def send_status_update(self, client_id, status, message=None, download_url=None, file_name=None, url=None, progress=None, **kwargs):
         """Send status update to FastAPI server"""
         try:
             payload = {
@@ -82,6 +83,12 @@ class DownloadWorker:
                 
             if url:
                 payload["url"] = url
+                
+            if progress is not None:
+                payload["progress"] = progress
+            
+            # Add any additional kwargs
+            payload.update(kwargs)
                 
             response = requests.post(
                 f"{FASTAPI_URL}/status/{client_id}",
@@ -113,6 +120,134 @@ class DownloadWorker:
             # Default for other platforms
             return 'best[height<=1080]/best'
 
+    def parse_progress_line(self, line, client_id, url):
+        """Parse progress information from yt-dlp output"""
+        try:
+            # Look for download progress patterns
+            if 'download:' in line and '%' in line:
+                # Parse the custom progress template
+                # Format: download:percent% of total_size at speed ETA eta
+                
+                # Extract percentage
+                percent_match = re.search(r'(\d+(?:\.\d+)?)%', line)
+                if percent_match:
+                    progress = float(percent_match.group(1))
+                    
+                    # Extract speed if available
+                    speed_match = re.search(r'at\s+([^\s]+)', line)
+                    speed = speed_match.group(1) if speed_match else None
+                    
+                    # Extract ETA if available
+                    eta_match = re.search(r'ETA\s+([^\s]+)', line)
+                    eta = eta_match.group(1) if eta_match else None
+                    
+                    # Extract file size info (total size estimate)
+                    size_match = re.search(r'of\s+([^\s]+)', line)
+                    total_size = size_match.group(1) if size_match else None
+                    
+                    # Create progress message
+                    message_parts = [f"Downloading... {progress:.1f}%"]
+                    if speed and speed != 'N/A':
+                        message_parts.append(f"at {speed}")
+                    if eta and eta != 'N/A':
+                        message_parts.append(f"ETA {eta}")
+                    
+                    message = " ".join(message_parts)
+                    
+                    # Send progress update with throttling
+                    self.send_throttled_progress_update(client_id, progress, message, url, speed, eta, total_size)
+            
+            # Also look for other useful information and standard yt-dlp progress patterns
+            elif '[download]' in line:
+                if 'Destination:' in line:
+                    # File destination info
+                    logger.info(f"Download destination: {line}")
+                elif 'has already been downloaded' in line:
+                    # File already exists
+                    self.send_status_update(client_id, "downloading", "File already exists, skipping download", url=url)
+                elif '%' in line and ('ETA' in line or 'at' in line):
+                    # Standard yt-dlp progress format: [download]  45.2% of 123.45MiB at 1.23MiB/s ETA 00:42
+                    percent_match = re.search(r'(\d+(?:\.\d+)?)%', line)
+                    if percent_match:
+                        progress = float(percent_match.group(1))
+                        
+                        # Extract additional info from standard format
+                        size_match = re.search(r'of\s+([^\s]+)', line)
+                        speed_match = re.search(r'at\s+([^\s]+)', line)
+                        eta_match = re.search(r'ETA\s+([^\s]+)', line)
+                        
+                        total_size = size_match.group(1) if size_match else None
+                        speed = speed_match.group(1) if speed_match else None
+                        eta = eta_match.group(1) if eta_match else None
+                        
+                        # Create progress message
+                        message_parts = [f"Downloading... {progress:.1f}%"]
+                        if speed and speed != 'N/A':
+                            message_parts.append(f"at {speed}")
+                        if eta and eta != 'N/A' and eta != '00:00':
+                            message_parts.append(f"ETA {eta}")
+                        
+                        message = " ".join(message_parts)
+                        
+                        # Send progress update with throttling
+                        self.send_throttled_progress_update(client_id, progress, message, url, speed, eta, total_size)
+                
+        except Exception as e:
+            logger.error(f"Error parsing progress line '{line}': {str(e)}")
+
+    def send_throttled_progress_update(self, client_id, progress, message, url, speed=None, eta=None, total_size=None):
+        """Send progress update with throttling to avoid spam"""
+        try:
+            # Send update (but don't spam - only send every 2% or every 5 seconds)
+            current_time = datetime.now()
+            last_update_key = f"{client_id}_last_progress_update"
+            last_progress_key = f"{client_id}_last_progress"
+            
+            if not hasattr(self, '_progress_cache'):
+                self._progress_cache = {}
+            
+            last_update = self._progress_cache.get(last_update_key, datetime.min)
+            last_progress = self._progress_cache.get(last_progress_key, 0)
+            
+            time_diff = (current_time - last_update).total_seconds()
+            progress_diff = abs(progress - last_progress)
+            
+            # Send update if significant progress change, enough time passed, or near completion
+            if progress_diff >= 2.0 or time_diff >= 5.0 or progress >= 99.0:
+                payload = {
+                    "status": "downloading",
+                    "client_id": client_id,
+                    "progress": progress,
+                    "message": message,
+                    "url": url,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "worker": socket.gethostname()
+                }
+                
+                if speed and speed != 'N/A':
+                    payload["download_speed"] = speed
+                if eta and eta != 'N/A' and eta != '00:00':
+                    payload["eta"] = eta
+                if total_size:
+                    payload["file_size"] = total_size
+                
+                try:
+                    response = requests.post(
+                        f"{FASTAPI_URL}/status/{client_id}",
+                        json=payload,
+                        timeout=5
+                    )
+                    response.raise_for_status()
+                    
+                    self._progress_cache[last_update_key] = current_time
+                    self._progress_cache[last_progress_key] = progress
+                    
+                    logger.info(f"Progress update sent: {progress:.1f}% for client {client_id}")
+                except Exception as e:
+                    logger.error(f"Failed to send progress update: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in throttled progress update: {str(e)}")
+
     def download_file(self, url, client_id):
         """Download a file using yt-dlp"""
         temp_dir = tempfile.mkdtemp()
@@ -132,7 +267,8 @@ class DownloadWorker:
                 '--format', format_selector,
                 '--output', output_template,
                 '--print', 'after_move:filepath',
-                '--no-progress',
+                '--progress',
+                '--progress-template', 'download:%(progress.percent)s%% of %(progress.total_bytes_estimate)s at %(progress.speed)s ETA %(progress.eta)s',
                 url
             ]
             
@@ -149,12 +285,56 @@ class DownloadWorker:
             logger.info(f"Executing command: {' '.join(cmd)}")
             logger.info(f"Using format selector: {format_selector} for URL: {url}")
             
-            # Execute yt-dlp
-            result = subprocess.run(
+            # Execute yt-dlp with real-time progress monitoring
+            process = subprocess.Popen(
                 cmd,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                timeout=3600  # 1 hour timeout
+                bufsize=1,
+                universal_newlines=True
+            )
+            
+            # Monitor progress in real-time
+            stdout_lines = []
+            stderr_lines = []
+            
+            while True:
+                # Check if process has finished
+                if process.poll() is not None:
+                    break
+                
+                # Read stderr for progress updates
+                stderr_line = process.stderr.readline()
+                if stderr_line:
+                    stderr_lines.append(stderr_line)
+                    self.parse_progress_line(stderr_line.strip(), client_id, url)
+                
+                # Read stdout for file path
+                stdout_line = process.stdout.readline()
+                if stdout_line:
+                    stdout_lines.append(stdout_line)
+            
+            # Get any remaining output
+            remaining_stdout, remaining_stderr = process.communicate()
+            if remaining_stdout:
+                stdout_lines.extend(remaining_stdout.splitlines())
+            if remaining_stderr:
+                stderr_lines.extend(remaining_stderr.splitlines())
+                for line in remaining_stderr.splitlines():
+                    self.parse_progress_line(line.strip(), client_id, url)
+            
+            # Create result object similar to subprocess.run
+            class ProcessResult:
+                def __init__(self, returncode, stdout, stderr):
+                    self.returncode = returncode
+                    self.stdout = stdout
+                    self.stderr = stderr
+            
+            result = ProcessResult(
+                process.returncode,
+                '\n'.join(stdout_lines),
+                '\n'.join(stderr_lines)
             )
             
             if result.returncode != 0:
@@ -184,11 +364,47 @@ class DownloadWorker:
                         cmd_retry.extend(['--cookies-from-browser', 'chrome'])
                     
                     logger.info(f"Retry command: {' '.join(cmd_retry)}")
-                    result_retry = subprocess.run(
+                    
+                    # Execute retry with progress monitoring
+                    process_retry = subprocess.Popen(
                         cmd_retry,
-                        capture_output=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
                         text=True,
-                        timeout=3600
+                        bufsize=1,
+                        universal_newlines=True
+                    )
+                    
+                    # Monitor retry progress
+                    stdout_lines_retry = []
+                    stderr_lines_retry = []
+                    
+                    while True:
+                        if process_retry.poll() is not None:
+                            break
+                        
+                        stderr_line = process_retry.stderr.readline()
+                        if stderr_line:
+                            stderr_lines_retry.append(stderr_line)
+                            self.parse_progress_line(stderr_line.strip(), client_id, url)
+                        
+                        stdout_line = process_retry.stdout.readline()
+                        if stdout_line:
+                            stdout_lines_retry.append(stdout_line)
+                    
+                    # Get remaining output
+                    remaining_stdout_retry, remaining_stderr_retry = process_retry.communicate()
+                    if remaining_stdout_retry:
+                        stdout_lines_retry.extend(remaining_stdout_retry.splitlines())
+                    if remaining_stderr_retry:
+                        stderr_lines_retry.extend(remaining_stderr_retry.splitlines())
+                        for line in remaining_stderr_retry.splitlines():
+                            self.parse_progress_line(line.strip(), client_id, url)
+                    
+                    result_retry = ProcessResult(
+                        process_retry.returncode,
+                        '\n'.join(stdout_lines_retry),
+                        '\n'.join(stderr_lines_retry)
                     )
                     
                     if result_retry.returncode == 0:
