@@ -32,14 +32,15 @@ help:
 	@echo "  test-server     - Run server tests"
 	@echo ""
 	@echo "$(YELLOW)Docker Commands (Server):$(NC)"
-	@echo "  docker-build    - Build server Docker image"
-	@echo "  docker-run      - Run server in Docker"
+	@echo "  docker-build    - Build server Docker image (production)"
+	@echo "  docker-run      - Run server in Docker (production)"
+	@echo "  docker-dev      - Build and run server in development mode with code mounting"
 	@echo "  docker-stop     - Stop Docker container"
 	@echo "  docker-logs     - Show Docker logs"
 	@echo "  docker-clean    - Clean Docker resources"
 	@echo ""
 	@echo "$(YELLOW)Deployment Commands:$(NC)"
-	@echo "  deploy          - Deploy server to Google Cloud Run"
+	@echo "  deploy          - Deploy server to Google Cloud Run
 	@echo "  deploy-local    - Deploy server locally with Docker"
 	@echo ""
 	@echo "$(YELLOW)Utility Commands:$(NC)"
@@ -101,10 +102,15 @@ docker-run:
 	@echo "$(YELLOW)Running Docker container...$(NC)"
 	@cd $(SERVER_DIR) && make run
 
+.PHONY: docker-dev
+docker-dev:
+	@echo "$(YELLOW)Building and running development Docker container with code mounting...$(NC)"
+	@cd $(SERVER_DIR) && make dev-build && make dev-run
+
 .PHONY: docker-stop
 docker-stop:
-	@echo "$(YELLOW)Stopping Docker container...$(NC)"
-	@cd $(SERVER_DIR) && make stop
+	@echo "$(YELLOW)Stopping Docker containers...$(NC)"
+	@cd $(SERVER_DIR) && make stop-all
 
 .PHONY: docker-logs
 docker-logs:
@@ -117,7 +123,7 @@ docker-restart:
 .PHONY: docker-clean
 docker-clean:
 	@echo "$(YELLOW)Cleaning Docker resources...$(NC)"
-	@cd $(SERVER_DIR) && make clean
+	@cd $(SERVER_DIR) && make clean-all
 
 # Utility commands
 .PHONY: clean
