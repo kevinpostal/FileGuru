@@ -1021,10 +1021,118 @@
                     progress: 0,
                     message: 'Request queued - awaiting worker response',
                     timestamp: new Date(),
-                    clientId: this.clientId
+                    clientId: this.clientId,
+                    fakeProgressActive: false
                 };
                 
                 this.addDownload(download);
+                
+                // Start fake progress after a short delay
+                setTimeout(() => {
+                    this.startFakeProgress(downloadId);
+                }, 2000);
+            }
+
+            startFakeProgress(downloadId) {
+                const download = this.downloads.find(d => d.id === downloadId);
+                if (!download || download.status !== 'pending' || download.fakeProgressActive) {
+                    return;
+                }
+
+                download.fakeProgressActive = true;
+                download.status = 'downloading';
+                download.message = 'Analyzing video and preparing download...';
+                
+                let fakeProgress = 0;
+                const progressStages = [
+                    { progress: 15, message: 'Fetching video information...', duration: 3000 },
+                    { progress: 35, message: 'Selecting best quality format...', duration: 4000 },
+                    { progress: 55, message: 'Initializing download stream...', duration: 3000 },
+                    { progress: 75, message: 'Downloading video content...', duration: 5000 },
+                    { progress: 90, message: 'Processing and finalizing...', duration: 2000 }
+                ];
+                
+                let stageIndex = 0;
+                
+                const updateFakeProgress = () => {
+                    if (!download.fakeProgressActive || download.status === 'completed' || download.status === 'error') {
+                        return;
+                    }
+                    
+                    if (stageIndex < progressStages.length) {
+                        const stage = progressStages[stageIndex];
+                        const startProgress = fakeProgress;
+                        const targetProgress = stage.progress;
+                        const duration = stage.duration;
+                        const steps = 20;
+                        const stepDuration = duration / steps;
+                        const progressIncrement = (targetProgress - startProgress) / steps;
+                        
+                        download.message = stage.message;
+                        
+                        let step = 0;
+                        const progressInterval = setInterval(() => {
+                            if (!download.fakeProgressActive || download.status === 'completed' || download.status === 'error') {
+                                clearInterval(progressInterval);
+                                return;
+                            }
+                            
+                            step++;
+                            fakeProgress = Math.min(targetProgress, startProgress + (progressIncrement * step));
+                            download.progress = fakeProgress;
+                            
+                            // Add some randomness to make it look realistic
+                            if (Math.random() < 0.3) {
+                                download.progress += Math.random() * 2 - 1;
+                                download.progress = Math.max(0, Math.min(100, download.progress));
+                            }
+                            
+                            this.updateDownloadsList();
+                            
+                            if (step >= steps) {
+                                clearInterval(progressInterval);
+                                stageIndex++;
+                                
+                                setTimeout(() => {
+                                    if (download.fakeProgressActive) {
+                                        updateFakeProgress();
+                                    }
+                                }, 500);
+                            }
+                        }, stepDuration);
+                    } else {
+                        // Final stage - slow progress to 95% and wait
+                        download.message = 'Finalizing download...';
+                        const finalInterval = setInterval(() => {
+                            if (!download.fakeProgressActive || download.status === 'completed' || download.status === 'error') {
+                                clearInterval(finalInterval);
+                                return;
+                            }
+                            
+                            if (download.progress < 95) {
+                                download.progress += 0.2 + (Math.random() * 0.3);
+                                download.progress = Math.min(95, download.progress);
+                                this.updateDownloadsList();
+                            }
+                        }, 1000);
+                        
+                        setTimeout(() => {
+                            if (download.fakeProgressActive && download.status === 'downloading') {
+                                clearInterval(finalInterval);
+                                download.message = 'Download taking longer than expected...';
+                                this.updateDownloadsList();
+                            }
+                        }, 30000);
+                    }
+                };
+                
+                updateFakeProgress();
+            }
+
+            stopFakeProgress(download) {
+                if (download.fakeProgressActive) {
+                    download.fakeProgressActive = false;
+                }
             }
 
             addDownload(download) {
@@ -1433,7 +1541,8 @@
                         status: 'pending',
                         progress: 0,
                         message: 'Download initiated',
-                        timestamp: new Date()
+                        timestamp: new Date(),
+                        fakeProgressActive: false
                     };
                     this.downloads.push(download);
                     downloadIndex = this.downloads.length - 1;
@@ -1445,6 +1554,11 @@
                 }
                 
                 if (download) {
+                    // Stop fake progress when real data arrives
+                    if (typeof progress === 'number' || status === 'completed' || status === 'error') {
+                        this.stopFakeProgress(download);
+                    }
+                    
                     if (status) {
                         download.status = status.toLowerCase();
                     }

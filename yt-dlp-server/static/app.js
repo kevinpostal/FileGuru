@@ -267,10 +267,131 @@ class DownloadManager {
             progress: 0,
             message: 'Download request submitted - waiting for worker...',
             timestamp: new Date(),
-            clientId: this.clientId  // Store client ID for matching
+            clientId: this.clientId,  // Store client ID for matching
+            fakeProgressActive: false,
+            fakeProgressTimer: null
         };
         
         this.addDownload(download);
+        
+        // Start fake progress after a short delay
+        setTimeout(() => {
+            this.startFakeProgress(downloadId);
+        }, 2000);
+    }
+
+    /**
+     * Start fake progress simulation for user comfort
+     */
+    startFakeProgress(downloadId) {
+        const download = this.downloads.find(d => d.id === downloadId);
+        if (!download || download.status !== 'pending' || download.fakeProgressActive) {
+            return;
+        }
+
+        download.fakeProgressActive = true;
+        download.status = 'downloading';
+        download.message = 'Analyzing video and preparing download...';
+        
+        let fakeProgress = 0;
+        const progressStages = [
+            { progress: 15, message: 'Fetching video information...', duration: 3000 },
+            { progress: 35, message: 'Selecting best quality format...', duration: 4000 },
+            { progress: 55, message: 'Initializing download stream...', duration: 3000 },
+            { progress: 75, message: 'Downloading video content...', duration: 5000 },
+            { progress: 90, message: 'Processing and finalizing...', duration: 2000 }
+        ];
+        
+        let stageIndex = 0;
+        
+        const updateFakeProgress = () => {
+            if (!download.fakeProgressActive || download.status === 'completed' || download.status === 'error') {
+                return;
+            }
+            
+            if (stageIndex < progressStages.length) {
+                const stage = progressStages[stageIndex];
+                const startProgress = fakeProgress;
+                const targetProgress = stage.progress;
+                const duration = stage.duration;
+                const steps = 20; // Number of progress updates
+                const stepDuration = duration / steps;
+                const progressIncrement = (targetProgress - startProgress) / steps;
+                
+                download.message = stage.message;
+                
+                let step = 0;
+                const progressInterval = setInterval(() => {
+                    if (!download.fakeProgressActive || download.status === 'completed' || download.status === 'error') {
+                        clearInterval(progressInterval);
+                        return;
+                    }
+                    
+                    step++;
+                    fakeProgress = Math.min(targetProgress, startProgress + (progressIncrement * step));
+                    download.progress = fakeProgress;
+                    
+                    // Add some randomness to make it look more realistic
+                    if (Math.random() < 0.3) {
+                        download.progress += Math.random() * 2 - 1; // ±1% variation
+                        download.progress = Math.max(0, Math.min(100, download.progress));
+                    }
+                    
+                    this.updateDownloadsList();
+                    
+                    if (step >= steps) {
+                        clearInterval(progressInterval);
+                        stageIndex++;
+                        
+                        // Continue to next stage after a brief pause
+                        setTimeout(() => {
+                            if (download.fakeProgressActive) {
+                                updateFakeProgress();
+                            }
+                        }, 500);
+                    }
+                }, stepDuration);
+            } else {
+                // Final stage - slow progress to 95% and wait for real completion
+                download.message = 'Finalizing download...';
+                const finalInterval = setInterval(() => {
+                    if (!download.fakeProgressActive || download.status === 'completed' || download.status === 'error') {
+                        clearInterval(finalInterval);
+                        return;
+                    }
+                    
+                    if (download.progress < 95) {
+                        download.progress += 0.2 + (Math.random() * 0.3);
+                        download.progress = Math.min(95, download.progress);
+                        this.updateDownloadsList();
+                    }
+                }, 1000);
+                
+                // Stop fake progress after 30 seconds if no real update
+                setTimeout(() => {
+                    if (download.fakeProgressActive && download.status === 'downloading') {
+                        clearInterval(finalInterval);
+                        download.message = 'Download taking longer than expected...';
+                        this.updateDownloadsList();
+                    }
+                }, 30000);
+            }
+        };
+        
+        updateFakeProgress();
+    }
+
+    /**
+     * Stop fake progress when real progress data arrives
+     */
+    stopFakeProgress(download) {
+        if (download.fakeProgressActive) {
+            download.fakeProgressActive = false;
+            if (download.fakeProgressTimer) {
+                clearTimeout(download.fakeProgressTimer);
+                download.fakeProgressTimer = null;
+            }
+        }
     }
 
     /**
@@ -1286,5 +1407,68 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('beforeunload', () => {
     if (window.downloadManager && window.downloadManager.websocket) {
         window.downloadManager.disconnectWebSocket();
+    }
+});         
+       download.fileSize = data.file_size;
+            }
+            
+            // Stop fake progress when real progress data arrives
+            if (typeof progress === 'number' || status === 'completed' || status === 'error') {
+                this.stopFakeProgress(download);
+            }
+            
+            // Update timestamp
+            download.lastUpdate = new Date();
+            
+            // Update the downloads list display
+            this.updateDownloadsList();
+        }
+    }
+
+    /**
+     * Update connection status display
+     */
+    updateConnectionStatus(status, message) {
+        this.connectionStatus.className = `status-indicator ${status}`;
+        this.connectionText.textContent = message;
+    }
+
+    /**
+     * Schedule WebSocket reconnection with exponential backoff
+     */
+    scheduleReconnect() {
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            this.updateConnectionStatus('disconnected', 'Connection failed - max retries exceeded');
+            this.showError('Unable to connect to server after multiple attempts. Please refresh the page.');
+            return;
+        }
+
+        this.reconnectAttempts++;
+        const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
+        
+        this.updateConnectionStatus('connecting', `Reconnecting in ${Math.ceil(delay / 1000)}s... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+        
+        setTimeout(() => {
+            this.connectWebSocket();
+        }, delay);
+    }
+
+    /**
+     * Manual reconnection attempt
+     */
+    manualReconnect() {
+        this.reconnectAttempts = 0;
+        this.connectWebSocket();
+    }
+}
+
+// Initialize the download manager when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof window.CLIENT_ID !== 'undefined') {
+        window.downloadManager = new DownloadManager(window.CLIENT_ID);
+    } else {
+        console.error('CLIENT_ID not found. WebSocket connection cannot be established.');
+        document.getElementById('connection-status').className = 'status-indicator disconnected';
+        document.getElementById('connection-text').textContent = 'Configuration Error';
     }
 });
