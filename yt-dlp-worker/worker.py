@@ -40,22 +40,44 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 class DownloadWorker:
     def __init__(self):
-        # Get credentials from environment variable
+        # Initialize Google Cloud clients with proper credential handling
+        credentials = None
         credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
         
-        if credentials_path and os.path.exists(credentials_path):
-            # Use service account credentials
-            from google.oauth2 import service_account
-            credentials = service_account.Credentials.from_service_account_file(
-                credentials_path,
-                scopes=["https://www.googleapis.com/auth/cloud-platform"]
-            )
-            self.subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
-            self.storage_client = storage.Client(credentials=credentials)
+        if credentials_path:
+            # Check if the credentials file exists
+            if os.path.exists(credentials_path):
+                try:
+                    # Use service account credentials
+                    from google.oauth2 import service_account
+                    credentials = service_account.Credentials.from_service_account_file(
+                        credentials_path,
+                        scopes=["https://www.googleapis.com/auth/cloud-platform"]
+                    )
+                    logger.info(f"Using service account credentials from: {credentials_path}")
+                except Exception as e:
+                    logger.error(f"Failed to load service account credentials from {credentials_path}: {str(e)}")
+                    logger.info("Falling back to default credentials")
+                    credentials = None
+            else:
+                logger.warning(f"Service account key file not found at: {credentials_path}")
+                logger.info("Falling back to default credentials (Application Default Credentials)")
         else:
-            # Use application default credentials (when running on Google Cloud)
-            self.subscriber = pubsub_v1.SubscriberClient()
-            self.storage_client = storage.Client()
+            logger.info("No GOOGLE_APPLICATION_CREDENTIALS set, using default credentials")
+        
+        try:
+            # Initialize clients with credentials (or None for default)
+            if credentials:
+                self.subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
+                self.storage_client = storage.Client(credentials=credentials)
+            else:
+                # Use application default credentials (when running on Google Cloud or with gcloud auth)
+                self.subscriber = pubsub_v1.SubscriberClient()
+                self.storage_client = storage.Client()
+                logger.info("Successfully initialized Google Cloud clients with default credentials")
+        except Exception as e:
+            logger.error(f"Failed to initialize Google Cloud clients: {str(e)}")
+            raise
         
         self.bucket = self.storage_client.bucket(GCS_BUCKET_NAME)
         self.subscription_path = self.subscriber.subscription_path(
