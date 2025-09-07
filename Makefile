@@ -48,6 +48,10 @@ help:
 	@echo "  install-deps    - Install/update dependencies"
 	@echo "  check-env       - Check environment setup"
 	@echo "  export-cookies  - Export cookies from browser"
+	@echo ""
+	@echo "$(YELLOW)Google Storage Commands:$(NC)"
+	@echo "  clear-uploads   - Clear all uploads from Google Storage bucket"
+	@echo "  clear-old       - Clear uploads older than X days (usage: make clear-old DAYS=7)"
 
 # Setup commands
 .PHONY: setup
@@ -207,3 +211,41 @@ deploy:
 .PHONY: deploy-local
 deploy-local: docker-build docker-run
 	@echo "$(GREEN)✓ Local Docker deployment complete$(NC)"
+
+# Google Storage cleanup commands
+.PHONY: clear-uploads
+clear-uploads:
+	@echo "$(YELLOW)Clearing all uploads from Google Storage bucket...$(NC)"
+	@echo "$(RED)WARNING: This will delete ALL files in the bucket!$(NC)"
+	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ] || (echo "$(YELLOW)Operation cancelled$(NC)" && exit 1)
+	@if [ -f "$(WORKER_DIR)/.env" ]; then \
+		export $$(cat $(WORKER_DIR)/.env | grep -v '^#' | xargs) && \
+		gsutil -m rm -r gs://$$GCS_BUCKET_NAME/** 2>/dev/null || echo "$(YELLOW)Bucket already empty or no files to delete$(NC)"; \
+	else \
+		echo "$(RED)✗ Worker .env file not found$(NC)" && exit 1; \
+	fi
+	@echo "$(GREEN)✓ All uploads cleared from bucket$(NC)"
+
+.PHONY: clear-old
+clear-old:
+	@if [ -z "$(DAYS)" ]; then \
+		echo "$(RED)✗ Please specify DAYS parameter (e.g., make clear-old DAYS=7)$(NC)" && exit 1; \
+	fi
+	@echo "$(YELLOW)Clearing uploads older than $(DAYS) days from Google Storage bucket...$(NC)"
+	@if [ -f "$(WORKER_DIR)/.env" ]; then \
+		export $$(cat $(WORKER_DIR)/.env | grep -v '^#' | xargs) && \
+		echo "$(YELLOW)Finding files older than $(DAYS) days...$(NC)" && \
+		gsutil ls -l gs://$$GCS_BUCKET_NAME/** | awk -v days=$(DAYS) 'BEGIN{cutoff=systime()-days*86400} {if($$2!="" && $$2<cutoff) print $$3}' > /tmp/old_files.txt 2>/dev/null || true && \
+		if [ -s /tmp/old_files.txt ]; then \
+			echo "$(YELLOW)Files to delete:$(NC)" && \
+			cat /tmp/old_files.txt && \
+			echo "$(YELLOW)Deleting files...$(NC)" && \
+			cat /tmp/old_files.txt | xargs -r gsutil -m rm && \
+			echo "$(GREEN)✓ Old files deleted$(NC)"; \
+		else \
+			echo "$(YELLOW)No files older than $(DAYS) days found$(NC)"; \
+		fi && \
+		rm -f /tmp/old_files.txt; \
+	else \
+		echo "$(RED)✗ Worker .env file not found$(NC)" && exit 1; \
+	fi
