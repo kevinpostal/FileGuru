@@ -81,6 +81,28 @@ dev-run:
 	fi
 	@echo "Development container started on http://localhost:$(PORT) with code mounting and auto-reload"
 
+# Run the development container in attached mode with code mounting and auto-reload
+.PHONY: dev-run-attached
+dev-run-attached:
+	@echo "Stopping any existing development container..."
+	@docker stop $(DEV_CONTAINER_NAME) 2>/dev/null || true
+	@docker rm $(DEV_CONTAINER_NAME) 2>/dev/null || true
+	@if [ -f "$(GCP_KEY_FILE)" ]; then \
+		echo "Using GCP service account key file: $(GCP_KEY_FILE)"; \
+		echo "Starting development container in attached mode on http://localhost:$(PORT) with code mounting and auto-reload"; \
+		docker run --rm --name $(DEV_CONTAINER_NAME) -p $(PORT):8080 \
+			-v "$(shell pwd):/app:rw" \
+			-v "$(shell pwd)/$(GCP_KEY_FILE):/app/yt-dlp-worker-key.json:ro" \
+			-e GOOGLE_APPLICATION_CREDENTIALS="/app/yt-dlp-worker-key.json" \
+			$(DEV_IMAGE_NAME); \
+	else \
+		echo "GCP key file not found at $(GCP_KEY_FILE), using local credentials"; \
+		echo "Starting development container in attached mode on http://localhost:$(PORT) with code mounting and auto-reload"; \
+		docker run --rm --name $(DEV_CONTAINER_NAME) -p $(PORT):8080 \
+			-v "$(shell pwd):/app:rw" \
+			$(DEV_IMAGE_NAME); \
+	fi
+
 # Stop the running production container
 .PHONY: stop
 stop:

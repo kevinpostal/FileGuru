@@ -105,7 +105,7 @@ docker-run:
 .PHONY: docker-dev
 docker-dev:
 	@echo "$(YELLOW)Building and running development Docker container with code mounting...$(NC)"
-	@cd $(SERVER_DIR) && make dev-build && make dev-run
+	@cd $(SERVER_DIR) && make dev-build && make dev-run-attached
 
 .PHONY: docker-stop
 docker-stop:
