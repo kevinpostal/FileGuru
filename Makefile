@@ -58,33 +58,33 @@ setup: setup-worker setup-server
 setup-worker:
 	@echo "$(YELLOW)Setting up worker environment...$(NC)"
 	@cd $(WORKER_DIR) && $(PYTHON) -m venv .venv_3.13.0
-	@cd $(WORKER_DIR) && .venv_3.13.0/Scripts/pip install -r requirements.txt
+	@cd $(WORKER_DIR) && .venv_3.13.0/bin/pip install -r requirements.txt
 	@echo "$(GREEN)✓ Worker environment ready$(NC)"
 
 .PHONY: setup-server
 setup-server:
 	@echo "$(YELLOW)Setting up server environment...$(NC)"
 	@cd $(SERVER_DIR) && $(PYTHON) -m venv .venv_3.13.0
-	@cd $(SERVER_DIR) && .venv_3.13.0/Scripts/pip install -r requirements.txt
+	@cd $(SERVER_DIR) && .venv_3.13.0/bin/pip install -r requirements.txt
 	@echo "$(GREEN)✓ Server environment ready$(NC)"
 
 # Development commands
 .PHONY: run-worker
 run-worker:
 	@echo "$(YELLOW)Starting worker...$(NC)"
-	@cd $(WORKER_DIR) && .venv_3.13.0/Scripts/python worker.py
+	@cd $(WORKER_DIR) && .venv_3.13.0/bin/python worker.py
 
 .PHONY: run-server
 run-server:
 	@echo "$(YELLOW)Starting server...$(NC)"
-	@cd $(SERVER_DIR) && .venv_3.13.0/Scripts/python -m uvicorn main:app --reload --host 0.0.0.0 --port 8080
+	@cd $(SERVER_DIR) && .venv_3.13.0/bin/python -m uvicorn main:app --reload --host 0.0.0.0 --port 8080
 
 # Testing commands
 .PHONY: test-worker
 test-worker:
 	@echo "$(YELLOW)Running worker tests...$(NC)"
-	@cd $(WORKER_DIR) && .venv_3.13.0/Scripts/python test_cookies.py
-	@cd $(WORKER_DIR) && .venv_3.13.0/Scripts/python test_auth.py
+	@cd $(WORKER_DIR) && .venv_3.13.0/bin/python test_cookies.py
+	@cd $(WORKER_DIR) && .venv_3.13.0/bin/python test_auth.py
 
 .PHONY: test-server
 test-server:
@@ -140,8 +140,8 @@ clean:
 .PHONY: install-deps
 install-deps:
 	@echo "$(YELLOW)Installing/updating dependencies...$(NC)"
-	@cd $(WORKER_DIR) && .venv_3.13.0/Scripts/pip install -r requirements.txt --upgrade
-	@cd $(SERVER_DIR) && .venv_3.13.0/Scripts/pip install -r requirements.txt --upgrade
+	@cd $(WORKER_DIR) && .venv_3.13.0/bin/pip install -r requirements.txt --upgrade
+	@cd $(SERVER_DIR) && .venv_3.13.0/bin/pip install -r requirements.txt --upgrade
 	@echo "$(GREEN)✓ Dependencies updated$(NC)"
 
 .PHONY: check-env
@@ -178,7 +178,7 @@ check-env:
 .PHONY: export-cookies
 export-cookies:
 	@echo "$(YELLOW)Exporting cookies from browser...$(NC)"
-	@cd $(WORKER_DIR) && .venv_3.13.0/Scripts/python export_cookies.py
+	@cd $(WORKER_DIR) && .venv_3.13.0/bin/python export_cookies.py
 
 # Development workflow shortcuts
 .PHONY: dev-worker
