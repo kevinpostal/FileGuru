@@ -1784,7 +1784,7 @@ class DownloadWorker:
             
             # Build yt-dlp command with platform-appropriate format selection
             cmd = [
-                'yt-dlp',
+                'stdbuf', '-o0', 'yt-dlp',
                 '--newline',  # Ensure progress is output with newlines
                 '--no-playlist',
                 '--format', format_selector,
@@ -1822,17 +1822,6 @@ class DownloadWorker:
                 text=True,
                 bufsize=1,
                 universal_newlines=True
-            )
-            
-            # Send progress update after subprocess starts with initial progress boost
-            progress_state = self.get_or_create_progress_state(client_id)
-            # Set initial progress to 25% to better align with typical yt-dlp first progress reports
-            # This reduces the jarring jump when real progress kicks in
-            progress_state.update_real_progress(25.0)
-            current_progress, metadata = self.manage_progress_coordination(client_id, 25.0)
-            self.send_throttled_progress_update(
-                client_id, current_progress, "Download engine started...", url, 
-                metadata=metadata
             )
             
             # Monitor progress in real-time with enhanced state management
@@ -1960,7 +1949,7 @@ class DownloadWorker:
                     
                     # Retry with just 'best' format
                     cmd_retry = [
-                        'yt-dlp',
+                        'stdbuf', '-o0', 'yt-dlp',
                         '--newline',
                         '--no-playlist',
                         '--format', 'best',

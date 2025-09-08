@@ -564,11 +564,7 @@
         gap: 12px;
       }
 
-      /* Enhanced Progress Bar */
-      .enhanced-progress {
-        flex-direction: column;
-        gap: 6px;
-      }
+      
 
       .progress-header {
         display: flex;
@@ -605,10 +601,7 @@
         border-radius: 2px;
       }
 
-      .enhanced-progress .progress-bar {
-        width: 100%;
-        height: 18px;
-      }
+      
 
       .progress-fill {
         height: 100%;
@@ -729,10 +722,7 @@
         text-shadow: 0 0 5px #00ff00;
       }
 
-      .enhanced-progress .progress-text {
-        font-size: 14px;
-        font-weight: bold;
-      }
+      
 
       .progress-text::after {
         content: "%";
@@ -776,8 +766,8 @@
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 1px;
-        margin-bottom: 4px;
-        display: block;
+        margin-right: 8px;
+        display: inline-block;
       }
 
       .tiny-url-value {
@@ -937,10 +927,7 @@
           font-size: 16px; /* Prevents zoom on iOS */
         }
 
-        /* Mobile-specific progress adjustments */
-        .enhanced-progress .progress-bar {
-          height: 14px;
-        }
+        
 
         .progress-info {
           font-size: 9px;
@@ -1609,7 +1596,7 @@
               const statusClass = `status-${download.status}`;
               const progressPercent = download.progress || 0;
               const showProgress =
-                download.status === "downloading" || progressPercent > 0;
+                download.status === "downloading";
 
               let messageHtml = download.message || "Processing request";
               if (download.status === "completed" && download.downloadUrl) {
@@ -1666,7 +1653,10 @@
         }
 
         renderEnhancedProgressBar(download) {
-          const progressPercent = download.progress || 0;
+          let progressPercent = download.progress || 0;
+          if (download.status === "completed") {
+            progressPercent = 100;
+          }
           const progressTypeClass = download.progressType
             ? `progress-${download.progressType}`
             : "";
@@ -1700,7 +1690,7 @@
             progressInfo.length > 0 ? progressInfo.join(" • ") : "";
 
           return `
-                    <div class="download-progress enhanced-progress">
+                    <div class="download-progress">
                         <div class="progress-header">
                             <div class="progress-info">
                                 ${progressInfoText}
