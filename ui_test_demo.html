@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiny URL Display Demo</title>
+    <style>
+        body {
+            background: #000000;
+            color: #00FF00;
+            font-family: 'Share Tech Mono', 'Courier New', monospace;
+            padding: 20px;
+        }
+
+        /* Tiny URL Display */
+        .tiny-url-container {
+            margin: 8px 0;
+            padding: 8px;
+            background: rgba(0, 51, 0, 0.2);
+            border: 1px solid #00CC00;
+            font-family: 'Share Tech Mono', monospace;
+            position: relative;
+        }
+
+        .tiny-url-container::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #00CC00;
+        }
+
+        .tiny-url-label {
+            color: #00CC00;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .tiny-url-value {
+            color: #00FF00;
+            font-weight: bold;
+            word-break: break-all;
+            font-size: 13px;
+            text-shadow: 0 0 2px #00FF00;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tiny-url-value:hover {
+            color: #FFFFFF;
+            text-shadow: 0 0 5px #00FF00;
+        }
+
+        .download-link {
+            display: inline-block;
+            background: #000000;
+            border: 2px solid #00FF00;
+            color: #00FF00 !important;
+            text-decoration: none;
+            padding: 10px 20px;
+            margin-top: 10px;
+            font-family: 'VT323', monospace;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .download-link::before {
+            content: '↓ ';
+        }
+
+        .download-link:hover {
+            background: #00FF00;
+            color: #000000 !important;
+            text-shadow: none;
+            box-shadow: 0 0 10px #00FF00;
+        }
+
+        .demo-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #00CC00;
+            background: rgba(0, 51, 0, 0.1);
+        }
+
+        h1 {
+            color: #00FF00;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .status-message {
+            color: #00CC00;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1>Download Completion UI Demo</h1>
+        
+        <div class="status-message">
+            <strong>Download completed successfully</strong><br>
+            <div class="tiny-url-container">
+                <span class="tiny-url-label">Tiny URL:</span>
+                <span class="tiny-url-value" onclick="navigator.clipboard.writeText('https://tinyurl.com/abc123def'); this.style.color='#FFFF00'; setTimeout(() => this.style.color='#00FF00', 500);" title="Click to copy">https://tinyurl.com/abc123def</span>
+            </div>
+            <a href="https://tinyurl.com/abc123def" target="_blank" rel="noopener noreferrer" class="download-link">Download File</a>
+        </div>
+        
+        <p style="color: #006600; font-size: 12px; margin-top: 20px;">
+            ✓ Click on the Tiny URL to copy it to clipboard<br>
+            ✓ The URL will briefly turn yellow when copied<br>
+            ✓ Hover effects show the URL is interactive
+        </p>
+    </div>
+</body>
+</html>

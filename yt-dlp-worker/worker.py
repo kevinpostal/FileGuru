@@ -63,8 +63,9 @@ class FallbackProgressGenerator:
             "initialization": {
                 "duration_ratio": 0.1,  # 10% of total time
                 "progress_range": (0.0, 15.0),  # 0-15% progress
-                "base_rate": 0.5,  # Base progress per second
-                "variance": 0.3  # Rate variance factor
+                "base_rate": 2.0,  # Faster progress per second for immediate feedback
+                "variance": 0.2,  # Lower variance for smoother initial experience
+                "initial_burst": True  # Flag for rapid initial progress
             },
             "downloading": {
                 "duration_ratio": 0.75,  # 75% of total time
@@ -129,8 +130,13 @@ class FallbackProgressGenerator:
         
         # Apply non-linear progression for more realistic feel
         if phase_name == "initialization":
-            # Slow start with exponential ramp-up
-            adjusted_ratio = 1 - (1 - phase_progress_ratio) ** 2
+            # Immediate burst for first few seconds, then steady progress
+            if phase_elapsed < 3.0:  # First 3 seconds get rapid progress
+                burst_progress = min(0.8, phase_elapsed / 3.0)  # Up to 80% of phase range quickly
+                adjusted_ratio = burst_progress + (phase_progress_ratio - burst_progress) * 0.3
+            else:
+                # After initial burst, continue with exponential ramp-up
+                adjusted_ratio = 1 - (1 - phase_progress_ratio) ** 1.5
         elif phase_name == "downloading":
             # Steady progress with slight deceleration
             adjusted_ratio = phase_progress_ratio ** 0.9
@@ -196,9 +202,9 @@ class FallbackProgressGenerator:
         if varied_progress > self.current_progress + max_increment:
             varied_progress = self.current_progress + max_increment
         
-        # Ensure progress is always forward (with small tolerance for variance)
-        if varied_progress < self.current_progress - 0.1:
-            varied_progress = self.current_progress
+        # Ensure progress is always forward (no backwards movement)
+        if varied_progress < self.current_progress:
+            varied_progress = self.current_progress + 0.1  # Small forward increment
         
         # Never exceed 95% in simulation to avoid false completion
         self.current_progress = min(95.0, max(0.0, varied_progress))
@@ -262,7 +268,7 @@ class ProgressState:
         # Progress smoothing parameters
         self.max_history_size = 10
         self.stall_timeout = 15.0  # seconds before considering progress stalled
-        self.fallback_timeout = 5.0  # seconds before activating fallback
+        self.fallback_timeout = 2.0  # seconds before activating fallback (reduced for faster response)
         
         # Initialize fallback progress generator
         self.fallback_generator = None
@@ -655,12 +661,13 @@ class DownloadWorker:
             # Default for other platforms
             return 'best[height<=1080]/best'
 
-    def extract_video_metadata(self, url):
+    def extract_video_metadata(self, url, client_id=None):
         """
-        Extract video metadata (title, uploader, etc.) using yt-dlp
+        Extract video metadata (title, uploader, etc.) using yt-dlp with progress updates
         
         Args:
             url (str): The video URL
+            client_id (str): Client ID for progress updates
             
         Returns:
             dict: Video metadata including title, uploader, duration, etc.
@@ -681,6 +688,15 @@ class DownloadWorker:
             
             logger.info(f"Extracting metadata for: {url}")
             
+            # Send progress update during metadata extraction
+            if client_id:
+                progress_state = self.get_or_create_progress_state(client_id)
+                current_progress, metadata = self.manage_progress_coordination(client_id, None)
+                self.send_throttled_progress_update(
+                    client_id, current_progress, "Connecting to video source...", url, 
+                    metadata=metadata
+                )
+            
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -699,6 +715,15 @@ class DownloadWorker:
                 
                 logger.info(f"Extracted metadata - Title: {title}, Uploader: {uploader}")
                 
+                # Send progress update after successful metadata extraction
+                if client_id:
+                    progress_state = self.get_or_create_progress_state(client_id)
+                    current_progress, metadata = self.manage_progress_coordination(client_id, None)
+                    self.send_throttled_progress_update(
+                        client_id, current_progress, f"Found: {title[:50]}{'...' if len(title) > 50 else ''}", url, 
+                        metadata=metadata
+                    )
+                
                 return {
                     'title': title,
                     'uploader': uploader,
@@ -715,7 +740,11 @@ class DownloadWorker:
             logger.warning(f"Metadata extraction timed out for: {url}")
             return None
         except json.JSONDecodeError as e:
-            logger.warning(f"Failed to parse metadata JSON: {str(e)}")
+            logger.error(f"Failed to parse metadata JSON: {str(e)}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error during metadata extraction: {str(e)}")
+            return Noner.warning(f"Failed to parse metadata JSON: {str(e)}")
             return None
         except Exception as e:
             logger.warning(f"Error extracting metadata: {str(e)}")
@@ -1143,14 +1172,17 @@ class DownloadWorker:
             return 240  # 4 minutes
     
     def _start_progress_monitoring(self, client_id, url):
-        """Start progress monitoring with fallback activation logic"""
+        """Start progress monitoring with immediate fallback activation for initialization"""
         progress_state = self.get_or_create_progress_state(client_id)
         
-        # Send initial progress update to establish baseline
+        # Immediately activate fallback for initialization phase to provide instant feedback
+        progress_state.activate_fallback()
+        
+        # Send initial progress update with simulated progress
         current_progress, metadata = self.manage_progress_coordination(client_id, None)
         
-        # Create initial message
-        initial_message = "Initializing download..."
+        # Create initial message with more engaging text
+        initial_message = "Preparing download..."
         
         # Send initial update
         self.send_throttled_progress_update(
@@ -1158,7 +1190,7 @@ class DownloadWorker:
             metadata=metadata
         )
         
-        logger.info(f"Started progress monitoring for client {client_id} with estimated duration: {progress_state.estimated_duration}s")
+        logger.info(f"Started progress monitoring for client {client_id} with immediate fallback activation and estimated duration: {progress_state.estimated_duration}s")
     
     def _ensure_progress_continuity(self, client_id):
         """Ensure progress continuity and handle transitions between real and simulated progress"""
@@ -1744,11 +1776,8 @@ class DownloadWorker:
             if estimated_duration:
                 progress_state.set_estimated_duration(estimated_duration)
             
-            # Send download started status with initial progress
-            self.send_status_update(client_id, "downloading", "Download started", url=url)
-            
-            # Start progress monitoring - this will activate fallback if no real progress is detected
-            self._start_progress_monitoring(client_id, url)
+            # Send download started status - progress monitoring already started in process_message
+            self.send_status_update(client_id, "downloading", "Starting download process...", url=url)
             
             # Get platform-specific format
             format_selector = self.get_format_for_platform(url)
@@ -1777,6 +1806,14 @@ class DownloadWorker:
             logger.info(f"Executing command: {' '.join(cmd)}")
             logger.info(f"Using format selector: {format_selector} for URL: {url}")
             
+            # Send progress update before starting subprocess
+            progress_state = self.get_or_create_progress_state(client_id)
+            current_progress, metadata = self.manage_progress_coordination(client_id, None)
+            self.send_throttled_progress_update(
+                client_id, current_progress, "Initializing download engine...", url, 
+                metadata=metadata
+            )
+            
             # Execute yt-dlp with real-time progress monitoring
             process = subprocess.Popen(
                 cmd,
@@ -1785,6 +1822,13 @@ class DownloadWorker:
                 text=True,
                 bufsize=1,
                 universal_newlines=True
+            )
+            
+            # Send progress update after subprocess starts
+            current_progress, metadata = self.manage_progress_coordination(client_id, None)
+            self.send_throttled_progress_update(
+                client_id, current_progress, "Download engine started...", url, 
+                metadata=metadata
             )
             
             # Monitor progress in real-time with enhanced state management
@@ -1842,8 +1886,20 @@ class DownloadWorker:
                     metadata["is_stalled"] = is_stalled
                     metadata["stall_reason"] = stall_reason if is_stalled else None
                     
-                    # Create appropriate message based on progress state
-                    if metadata.get("fallback_active"):
+                    # Create appropriate message based on progress state and phase
+                    current_phase = metadata.get("current_phase", "downloading")
+                    
+                    if current_phase == "initializing" and current_progress < 15:
+                        # More engaging messages during initialization
+                        if current_progress < 3:
+                            message = f"Starting download... {current_progress:.1f}%"
+                        elif current_progress < 8:
+                            message = f"Connecting to server... {current_progress:.1f}%"
+                        elif current_progress < 12:
+                            message = f"Analyzing video... {current_progress:.1f}%"
+                        else:
+                            message = f"Preparing download... {current_progress:.1f}%"
+                    elif metadata.get("fallback_active"):
                         if metadata.get("progress_type") == "simulated":
                             message = f"Downloading... {current_progress:.1f}% (estimated)"
                         else:
@@ -2193,8 +2249,11 @@ class DownloadWorker:
             logger.info(f"Processing download request from {client_id}: {url}")
             
             # Extract video metadata first (for better filename generation)
-            self.send_status_update(client_id, "processing", "Extracting video information...", url=url)
-            video_metadata = self.extract_video_metadata(url)
+            # Start progress monitoring immediately to provide user feedback
+            self._start_progress_monitoring(client_id, url)
+            
+            self.send_status_update(client_id, "processing", "Analyzing video...", url=url)
+            video_metadata = self.extract_video_metadata(url, client_id)
             
             if video_metadata:
                 logger.info(f"Extracted video metadata for {client_id}: {video_metadata['title']}")
