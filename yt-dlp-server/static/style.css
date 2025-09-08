@@ -393,90 +393,306 @@ main::before {
   color: var(--primary-deep);
 }
 
-/* Messages Area */
+/* Messages Area - Mobile First Redesign */
 .messages-area {
-  margin-bottom: 25px;
+  margin-bottom: 16px;
+  padding: 0 2px; /* Small padding for mobile tap targets */
 }
 
 .message {
-  padding: 12px 15px;
-  margin-bottom: 10px;
+  /* Mobile-first: stack vertically with proper touch targets */
+  padding: 12px 14px;
+  margin-bottom: 8px;
   border: 1px solid;
   font-family: var(--font-mono-1);
   position: relative;
-  animation: slideIn 0.3s ease;
-  border-radius: var(--radius-sm);
+  animation: slideInMobile 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: var(--radius);
+  font-size: 13px;
+  line-height: 1.5;
+  
+  /* Improve readability on small screens */
+  word-break: break-word;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  
+  /* Better touch interaction */
+  touch-action: manipulation;
+  min-height: 44px; /* iOS minimum touch target */
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 
+/* Mobile-optimized slide-in animation */
+@keyframes slideInMobile {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  70% {
+    transform: translateY(-2px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Icon-style prefixes for mobile readability */
 .message::before {
-  content: "[SYS] ";
+  content: "✓";
   font-weight: bold;
+  font-size: 14px;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-top: 1px;
 }
 
 .message-success {
   border-color: var(--primary);
-  background: rgba(0, 255, 0, 0.1);
+  background: rgba(0, 255, 0, 0.08);
+  color: var(--primary);
+}
+
+.message-success::before {
+  content: "✓";
+  background: rgba(0, 255, 0, 0.2);
   color: var(--primary);
 }
 
 .message-error {
   border-color: var(--error);
-  background: rgba(255, 85, 85, 0.1);
+  background: rgba(255, 85, 85, 0.08);
   color: var(--error);
 }
 
 .message-error::before {
-  content: "[ERR] ";
+  content: "✗";
+  background: rgba(255, 85, 85, 0.2);
+  color: var(--error);
 }
 
 .message-info {
   border-color: var(--accent-cyan);
-  background: rgba(0, 204, 204, 0.1);
+  background: rgba(0, 204, 204, 0.08);
+  color: var(--accent-cyan);
+}
+
+.message-info::before {
+  content: "ⓘ";
+  background: rgba(0, 204, 204, 0.2);
   color: var(--accent-cyan);
 }
 
 .message-warning {
   border-color: var(--warning);
-  background: rgba(255, 255, 0, 0.1);
+  background: rgba(255, 255, 0, 0.08);
   color: var(--warning);
 }
 
 .message-warning::before {
-  content: "[WARN] ";
+  content: "⚠";
+  background: rgba(255, 255, 0, 0.2);
+  color: var(--warning);
 }
 
+/* Message content wrapper */
+.message-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Mobile-optimized close button */
 .message-close {
   position: absolute;
   top: 8px;
-  right: 12px;
-  background: none;
-  border: none;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: inherit;
   cursor: pointer;
-  font-size: 18px;
-  opacity: 0.7;
+  font-size: 16px;
+  opacity: 0.8;
   line-height: 1;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  
+  /* Better mobile interaction */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.message-close:hover {
+.message-close:hover,
+.message-close:focus-visible {
   opacity: 1;
+  background: rgba(0, 0, 0, 0.5);
+  transform: scale(1.1);
 }
 
-/* Validation Errors */
+.message-close:active {
+  transform: scale(0.95);
+}
+
+.message-close::before {
+  content: "×";
+  font-weight: bold;
+}
+
+/* Swipe-to-dismiss indicator for mobile */
+.message.swipeable {
+  position: relative;
+  overflow: hidden;
+}
+
+.message.swipeable::after {
+  content: "← Swipe to dismiss";
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+/* Hide swipe hint when close button is focused/hovered */
+.message.swipeable:hover::after,
+.message.swipeable:focus-within::after {
+  opacity: 0;
+}
+
+/* Validation Errors - Mobile Optimized */
 .validation-error {
   color: var(--error);
-  background: rgba(139, 0, 0, 0.2);
-  border: 1px solid #8b0000;
-  padding: 8px 12px;
+  background: rgba(139, 0, 0, 0.15);
+  border: 1px solid var(--error-dark);
+  padding: 10px 12px;
   margin-top: 8px;
-  font-size: 12px;
-  animation: slideIn 0.3s ease;
-  border-radius: var(--radius-sm);
+  font-size: 13px;
+  animation: slideInMobile 0.3s ease;
+  border-radius: var(--radius);
+  line-height: 1.4;
+  
+  /* Mobile improvements */
+  word-break: break-word;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .validation-error::before {
-  content: "[INPUT ERROR] ";
+  content: "⚠";
   font-weight: bold;
+  font-size: 14px;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 85, 85, 0.2);
+  border-radius: 50%;
+}
+
+/* Tablet and larger screens */
+@media (min-width: 768px) {
+  .messages-area {
+    margin-bottom: 25px;
+    padding: 0;
+  }
+  
+  .message {
+    font-size: 14px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+  
+  .message::before {
+    width: 22px;
+    height: 22px;
+    font-size: 15px;
+  }
+  
+  .message-close {
+    width: 30px;
+    height: 30px;
+    top: 10px;
+    right: 12px;
+  }
+  
+  .validation-error {
+    font-size: 14px;
+    padding: 12px 15px;
+  }
+  
+  .validation-error::before {
+    width: 20px;
+    height: 20px;
+    font-size: 15px;
+  }
+}
+
+/* Desktop screens */
+@media (min-width: 1024px) {
+  .message::after {
+    display: none; /* Hide swipe hint on desktop */
+  }
+  
+  .message-close:hover {
+    transform: scale(1.05);
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .message::before,
+  .validation-error::before {
+    transform: translateZ(0); /* Force GPU acceleration for crisp icons */
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .message {
+    animation: none;
+  }
+  
+  .message-close:hover,
+  .message-close:focus-visible {
+    transform: none;
+  }
+  
+  .validation-error {
+    animation: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .message {
+    border-width: 2px;
+  }
+  
+  .message::before {
+    border: 1px solid currentColor;
+  }
+  
+  .message-close {
+    border-width: 2px;
+  }
 }
 
 /* Downloads List */
@@ -1003,270 +1219,5 @@ main::before {
   60%,
   100% {
     content: "...";
-  }
-}
-
-/* Enhanced progress bar states */
-.progress-bar.status-pending {
-  border-color: var(--accent-yellow);
-  background: rgba(255, 255, 0, 0.1);
-}
-
-.progress-bar.status-pending .progress-fill {
-  background: linear-gradient(90deg, var(--accent-yellow-dark), var(--accent-yellow));
-  animation: pulse 2s infinite;
-}
-
-.progress-bar.status-completed {
-  border-color: var(--primary);
-  background: rgba(0, 255, 0, 0.1);
-}
-
-.progress-bar.status-completed .progress-fill {
-  background: linear-gradient(90deg, var(--primary-dim), var(--primary));
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
-}
-
-.progress-bar.status-error {
-  border-color: var(--error);
-  background: rgba(255, 85, 85, 0.1);
-}
-
-.progress-bar.status-error .progress-fill {
-  background: linear-gradient(90deg, var(--error-dark), var(--error));
-}
-
-/* MOBILE & RESPONSIVE LAYERS */
-
-/* Tablet */
-@media (max-width: 900px) {
-  .container {
-    padding: 18px;
-  }
-  main {
-    padding: 24px;
-  }
-  .download-metadata {
-    gap: 8px;
-  }
-}
-
-/* Phablet / Large Mobile */
-@media (max-width: 768px) {
-  .container {
-    padding: 15px;
-  }
-
-  header h1 {
-    letter-spacing: 2px;
-  }
-
-  main {
-    padding: 20px;
-  }
-
-  .download-header {
-    flex-direction: column;
-    gap: 8px;
-    align-items: stretch;
-  }
-
-  .status-badge {
-    align-self: flex-start;
-  }
-
-  .download-metadata {
-    flex-direction: column;
-    gap: 5px;
-  }
-
-  .progress-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-
-  .progress-info {
-    font-size: 10px;
-    flex-wrap: wrap;
-  }
-
-  .progress-type-indicator {
-    font-size: 8px;
-  }
-
-  .submit-btn {
-    font-size: 18px;
-  }
-
-  .message,
-  .download-item {
-    padding: 14px;
-  }
-}
-
-/* Core small mobile */
-@media (max-width: 520px) {
-  .download-item {
-    padding: 14px 14px 12px;
-  }
-
-  .metadata-item {
-    font-size: 10px;
-    padding: 2px 6px;
-  }
-
-  .progress-bar {
-    height: 14px;
-  }
-
-  .submit-btn {
-    padding: 14px 20px;
-  }
-
-  .download-link {
-    font-size: 10px;
-    padding: 4px 8px;
-  }
-
-  header p {
-    font-size: clamp(0.75rem, 3.2vw, 0.95rem);
-  }
-}
-
-/* Very narrow devices */
-@media (max-width: 400px) {
-  body {
-    font-size: 13px;
-  }
-
-  #url-input {
-    font-size: 15px;
-    padding: 12px 14px;
-  }
-
-  .submit-btn {
-    font-size: 16px;
-    letter-spacing: 1px;
-  }
-
-  .progress-type-indicator {
-    display: none;
-  }
-
-  .download-url {
-    font-size: 13px;
-  }
-
-  .download-timestamp {
-    font-size: 10px;
-  }
-
-  .status-badge {
-    font-size: 10px;
-    padding: 3px 8px;
-  }
-}
-
-/* Ultra narrow fallback */
-@media (max-width: 330px) {
-  header h1 {
-    font-size: 1.85rem;
-  }
-  .download-url {
-    word-break: break-all;
-  }
-}
-
-/* High contrast mode */
-@media (prefers-contrast: high) {
-  body {
-    background: #000;
-    color: #fff;
-  }
-  .submit-btn,
-  .download-link {
-    border-width: 3px;
-  }
-  .download-item {
-    outline: 1px solid #fff;
-  }
-}
-
-/* Dark preference (kept same aesthetic but ensure better contrast if system forces color adjustments) */
-@media (prefers-color-scheme: light) {
-  body {
-    background: #010f01;
-  }
-}
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-  .progress-fill::after,
-  .progress-bar.active {
-    animation: none !important;
-  }
-}
-
-/* Touch optimizations */
-@media (hover: none) and (pointer: coarse) {
-  .submit-btn,
-  .download-link,
-  .tiny-url-container {
-    -webkit-tap-highlight-color: rgba(0, 255, 0, 0.2);
-  }
-  .download-link:active {
-    transform: scale(0.97);
-  }
-}
-
-/* Utility classes */
-.u-hidden {
-  display: none !important;
-}
-
-.u-inline {
-  display: inline !important;
-}
-
-.u-flex {
-  display: flex !important;
-}
-
-.u-wrap {
-  flex-wrap: wrap !important;
-}
-
-.u-break {
-  word-break: break-word;
-}
-
-/* Print (minimal) */
-@media print {
-  body,
-  main,
-  .container {
-    background: #fff !important;
-    color: #000 !important;
-  }
-  .download-item,
-  .download-form,
-  .messages-area {
-    border: 1px solid #000 !important;
-    background: #fff !important;
-  }
-  .submit-btn,
-  .status-indicator,
-  .progress-bar,
-  .progress-fill,
-  header::before,
-  body::before,
-  body::after {
-    display: none !important;
   }
 }
