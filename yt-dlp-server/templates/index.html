@@ -541,19 +541,55 @@
             gap: 12px;
         }
 
+        /* Enhanced Progress Bar */
+        .enhanced-progress {
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: #00CC00;
+        }
+
+        .progress-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .progress-type-indicator {
+            background: rgba(0, 204, 204, 0.2);
+            border: 1px solid #00CCCC;
+            color: #00CCCC;
+            padding: 1px 4px;
+            font-size: 9px;
+            font-family: 'VT323', monospace;
+            letter-spacing: 1px;
+        }
+
         .progress-bar {
             flex: 1;
-            height: 12px;
+            height: 14px;
             background: #003300;
             border: 1px solid #00CC00;
             position: relative;
             overflow: hidden;
         }
 
+        .enhanced-progress .progress-bar {
+            width: 100%;
+            height: 16px;
+        }
+
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #00CC00, #00FF00);
-            transition: width 0.5s ease;
+            transition: width 0.3s ease-out;
             position: relative;
         }
 
@@ -574,6 +610,42 @@
             animation: progressScan 2s linear infinite;
         }
 
+        .progress-glow {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 20px;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.4));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .progress-bar:hover .progress-glow {
+            opacity: 1;
+        }
+
+        /* Progress type variations */
+        .progress-real .progress-fill {
+            background: linear-gradient(90deg, #00CC00, #00FF00);
+        }
+
+        .progress-simulated .progress-fill {
+            background: linear-gradient(90deg, #CCCC00, #FFFF00);
+        }
+
+        .progress-simulated .progress-bar {
+            border-color: #CCCC00;
+        }
+
+        .progress-hybrid .progress-fill {
+            background: linear-gradient(90deg, #00CCCC, #00FFFF);
+        }
+
+        .progress-hybrid .progress-bar {
+            border-color: #00CCCC;
+        }
+
         @keyframes progressScan {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(100%); }
@@ -585,6 +657,11 @@
             font-family: 'VT323', monospace;
             min-width: 45px;
             text-align: right;
+        }
+
+        .enhanced-progress .progress-text {
+            font-size: 13px;
+            font-weight: bold;
         }
 
         .progress-text::after {
@@ -602,6 +679,50 @@
             font-size: 13px;
             line-height: 1.4;
             margin-bottom: 8px;
+        }
+
+        /* Tiny URL Display */
+        .tiny-url-container {
+            margin: 8px 0;
+            padding: 8px;
+            background: rgba(0, 51, 0, 0.2);
+            border: 1px solid #00CC00;
+            font-family: 'Share Tech Mono', monospace;
+            position: relative;
+        }
+
+        .tiny-url-container::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #00CC00;
+        }
+
+        .tiny-url-label {
+            color: #00CC00;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .tiny-url-value {
+            color: #00FF00;
+            font-weight: bold;
+            word-break: break-all;
+            font-size: 13px;
+            text-shadow: 0 0 2px #00FF00;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tiny-url-value:hover {
+            color: #FFFFFF;
+            text-shadow: 0 0 5px #00FF00;
         }
 
         /* Download Links */
@@ -709,6 +830,22 @@
                 flex-direction: column;
                 gap: 5px;
             }
+            
+            /* Enhanced progress responsive adjustments */
+            .progress-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+            
+            .progress-info {
+                font-size: 10px;
+                flex-wrap: wrap;
+            }
+            
+            .progress-type-indicator {
+                font-size: 8px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -724,6 +861,20 @@
             
             #url-input {
                 font-size: 16px; /* Prevents zoom on iOS */
+            }
+            
+            /* Mobile-specific progress adjustments */
+            .enhanced-progress .progress-bar {
+                height: 14px;
+            }
+            
+            .progress-info {
+                font-size: 9px;
+                gap: 6px;
+            }
+            
+            .progress-text {
+                font-size: 11px;
             }
         }
 
@@ -1042,14 +1193,51 @@
                 download.fakeProgressActive = true;
                 download.status = 'downloading';
                 download.message = 'Analyzing video and preparing download...';
+                download.progressType = 'simulated';
+                
+                // Initialize enhanced progress data
+                download.downloadSpeed = null;
+                download.eta = null;
+                download.fileSize = null;
                 
                 let fakeProgress = 0;
                 const progressStages = [
-                    { progress: 15, message: 'Fetching video information...', duration: 3000 },
-                    { progress: 35, message: 'Selecting best quality format...', duration: 4000 },
-                    { progress: 55, message: 'Initializing download stream...', duration: 3000 },
-                    { progress: 75, message: 'Downloading video content...', duration: 5000 },
-                    { progress: 90, message: 'Processing and finalizing...', duration: 2000 }
+                    { 
+                        progress: 15, 
+                        message: 'Fetching video information...', 
+                        duration: 3000,
+                        speed: 'Initializing...',
+                        eta: 'Calculating...'
+                    },
+                    { 
+                        progress: 35, 
+                        message: 'Selecting best quality format...', 
+                        duration: 4000,
+                        speed: 'Analyzing...',
+                        eta: 'Estimating...'
+                    },
+                    { 
+                        progress: 55, 
+                        message: 'Initializing download stream...', 
+                        duration: 3000,
+                        speed: () => this.generateFakeSpeed(0.8),
+                        eta: () => this.calculateFakeETA(55),
+                        fileSize: () => this.generateFakeFileSize()
+                    },
+                    { 
+                        progress: 75, 
+                        message: 'Downloading video content...', 
+                        duration: 5000,
+                        speed: () => this.generateFakeSpeed(1.0),
+                        eta: () => this.calculateFakeETA(75)
+                    },
+                    { 
+                        progress: 90, 
+                        message: 'Processing and finalizing...', 
+                        duration: 2000,
+                        speed: () => this.generateFakeSpeed(0.6),
+                        eta: () => this.calculateFakeETA(90)
+                    }
                 ];
                 
                 let stageIndex = 0;
@@ -1070,6 +1258,25 @@
                         
                         download.message = stage.message;
                         
+                        // Update enhanced metadata
+                        if (typeof stage.speed === 'function') {
+                            download.downloadSpeed = stage.speed();
+                        } else if (stage.speed) {
+                            download.downloadSpeed = stage.speed;
+                        }
+                        
+                        if (typeof stage.eta === 'function') {
+                            download.eta = stage.eta();
+                        } else if (stage.eta) {
+                            download.eta = stage.eta;
+                        }
+                        
+                        if (typeof stage.fileSize === 'function') {
+                            download.fileSize = stage.fileSize();
+                        } else if (stage.fileSize) {
+                            download.fileSize = stage.fileSize;
+                        }
+                        
                         let step = 0;
                         const progressInterval = setInterval(() => {
                             if (!download.fakeProgressActive || download.status === 'completed' || download.status === 'error') {
@@ -1080,6 +1287,14 @@
                             step++;
                             fakeProgress = Math.min(targetProgress, startProgress + (progressIncrement * step));
                             download.progress = fakeProgress;
+                            
+                            // Update dynamic metadata during progress
+                            if (stageIndex >= 2) { // After initialization stages
+                                if (Math.random() < 0.4) { // Update speed occasionally
+                                    download.downloadSpeed = this.generateFakeSpeed();
+                                }
+                                download.eta = this.calculateFakeETA(fakeProgress);
+                            }
                             
                             // Add some randomness to make it look realistic
                             if (Math.random() < 0.3) {
@@ -1103,6 +1318,9 @@
                     } else {
                         // Final stage - slow progress to 95% and wait
                         download.message = 'Finalizing download...';
+                        download.downloadSpeed = this.generateFakeSpeed(0.3);
+                        download.eta = '< 1min';
+                        
                         const finalInterval = setInterval(() => {
                             if (!download.fakeProgressActive || download.status === 'completed' || download.status === 'error') {
                                 clearInterval(finalInterval);
@@ -1112,6 +1330,7 @@
                             if (download.progress < 95) {
                                 download.progress += 0.2 + (Math.random() * 0.3);
                                 download.progress = Math.min(95, download.progress);
+                                download.eta = this.calculateFakeETA(download.progress);
                                 this.updateDownloadsList();
                             }
                         }, 1000);
@@ -1120,6 +1339,8 @@
                             if (download.fakeProgressActive && download.status === 'downloading') {
                                 clearInterval(finalInterval);
                                 download.message = 'Download taking longer than expected...';
+                                download.downloadSpeed = 'Variable';
+                                download.eta = 'Unknown';
                                 this.updateDownloadsList();
                             }
                         }, 30000);
@@ -1127,6 +1348,37 @@
                 };
                 
                 updateFakeProgress();
+            }
+
+            generateFakeSpeed(multiplier = 1) {
+                const baseSpeed = 0.5 + Math.random() * 3; // 0.5 - 3.5 MB/s
+                const adjustedSpeed = baseSpeed * multiplier;
+                
+                if (adjustedSpeed < 1) {
+                    return `${(adjustedSpeed * 1024).toFixed(0)}KB/s`;
+                } else {
+                    return `${adjustedSpeed.toFixed(1)}MB/s`;
+                }
+            }
+
+            calculateFakeETA(currentProgress) {
+                if (currentProgress < 5) return 'Calculating...';
+                if (currentProgress > 90) return '< 1min';
+                
+                const remainingProgress = 100 - currentProgress;
+                const estimatedMinutes = Math.ceil((remainingProgress / 100) * (5 + Math.random() * 10));
+                
+                if (estimatedMinutes < 1) return '< 1min';
+                if (estimatedMinutes < 60) return `${estimatedMinutes}min`;
+                
+                const hours = Math.floor(estimatedMinutes / 60);
+                const mins = estimatedMinutes % 60;
+                return `${hours}h ${mins}min`;
+            }
+
+            generateFakeFileSize() {
+                const sizes = ['25.3MB', '47.8MB', '89.2MB', '156.7MB', '234.1MB', '312.5MB'];
+                return sizes[Math.floor(Math.random() * sizes.length)];
             }
 
             stopFakeProgress(download) {
@@ -1167,7 +1419,12 @@
                     
                     let messageHtml = download.message || 'Processing request';
                     if (download.status === 'completed' && download.downloadUrl) {
-                        messageHtml = `<strong>Download completed successfully</strong><br><a href="${download.downloadUrl}" target="_blank" rel="noopener noreferrer" class="download-link">${download.fileName || 'Download File'}</a>`;
+                        messageHtml = `<strong>Download completed successfully</strong><br>
+                        <div class="tiny-url-container">
+                            <span class="tiny-url-label">Tiny URL:</span>
+                            <span class="tiny-url-value" onclick="navigator.clipboard.writeText('${download.downloadUrl}'); this.style.color='#FFFF00'; setTimeout(() => this.style.color='#00FF00', 500);" title="Click to copy">${download.downloadUrl}</span>
+                        </div>
+                        <a href="${download.downloadUrl}" target="_blank" rel="noopener noreferrer" class="download-link">${download.fileName || 'Download File'}</a>`;
                     }
 
                     return `
@@ -1180,14 +1437,7 @@
                                 <span class="status-badge ${statusClass}">${this.formatStatus(download.status)}</span>
                             </div>
                             
-                            ${showProgress ? `
-                                <div class="download-progress">
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: ${progressPercent}%"></div>
-                                    </div>
-                                    <div class="progress-text">${progressPercent.toFixed(1)}</div>
-                                </div>
-                            ` : ''}
+                            ${showProgress ? this.renderEnhancedProgressBar(download) : ''}
                             
                             <div class="download-details">
                                 <div class="download-message">${messageHtml}</div>
@@ -1200,19 +1450,64 @@
                 this.downloadsList.innerHTML = downloadsHtml;
             }
             
+            renderEnhancedProgressBar(download) {
+                const progressPercent = download.progress || 0;
+                const progressTypeClass = download.progressType ? `progress-${download.progressType}` : '';
+                const progressTypeIndicator = this.getProgressTypeIndicator(download.progressType);
+                
+                // Build progress info line
+                const progressInfo = [];
+                if (download.downloadSpeed && download.status === 'downloading') {
+                    progressInfo.push(`${download.downloadSpeed}`);
+                }
+                if (download.eta && download.status === 'downloading') {
+                    progressInfo.push(`ETA ${download.eta}`);
+                }
+                if (download.fileSize) {
+                    progressInfo.push(`${download.fileSize}`);
+                }
+                
+                const progressInfoText = progressInfo.length > 0 ? progressInfo.join(' • ') : '';
+                
+                return `
+                    <div class="download-progress enhanced-progress">
+                        <div class="progress-header">
+                            <div class="progress-info">
+                                ${progressInfoText}
+                                ${progressTypeIndicator ? `<span class="progress-type-indicator">${progressTypeIndicator}</span>` : ''}
+                            </div>
+                            <div class="progress-text">${progressPercent.toFixed(1)}%</div>
+                        </div>
+                        <div class="progress-bar ${progressTypeClass}">
+                            <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                            <div class="progress-glow"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            getProgressTypeIndicator(progressType) {
+                const indicators = {
+                    'real': '[LIVE]',
+                    'simulated': '[SIM]',
+                    'hybrid': '[HYB]'
+                };
+                return indicators[progressType] || '';
+            }
+
             renderDownloadMetadata(download) {
                 const metadata = [];
                 
-                if (download.fileSize) {
-                    metadata.push(`<span class="metadata-item">Size: ${download.fileSize}</span>`);
+                // Only show metadata that's not already in the progress bar
+                if (download.fileName && download.status === 'completed') {
+                    metadata.push(`<span class="metadata-item">File: ${download.fileName}</span>`);
                 }
                 
-                if (download.downloadSpeed && download.status === 'downloading') {
-                    metadata.push(`<span class="metadata-item">Speed: ${download.downloadSpeed}</span>`);
-                }
-                
-                if (download.eta && download.status === 'downloading') {
-                    metadata.push(`<span class="metadata-item">ETA: ${download.eta}</span>`);
+                if (download.progressTimestamp && download.status === 'downloading') {
+                    const timeDiff = Math.floor((new Date() - download.progressTimestamp) / 1000);
+                    if (timeDiff < 60) {
+                        metadata.push(`<span class="metadata-item">Updated: ${timeDiff}s ago</span>`);
+                    }
                 }
                 
                 return metadata.length > 0 ? `<div class="download-metadata">${metadata.join('')}</div>` : '';
@@ -1542,7 +1837,8 @@
                         progress: 0,
                         message: 'Download initiated',
                         timestamp: new Date(),
-                        fakeProgressActive: false
+                        fakeProgressActive: false,
+                        progressHistory: []
                     };
                     this.downloads.push(download);
                     downloadIndex = this.downloads.length - 1;
@@ -1554,6 +1850,9 @@
                 }
                 
                 if (download) {
+                    // Handle enhanced progress data
+                    this.processEnhancedProgressData(download, data);
+                    
                     // Stop fake progress when real data arrives
                     if (typeof progress === 'number' || status === 'completed' || status === 'error') {
                         this.stopFakeProgress(download);
@@ -1564,7 +1863,8 @@
                     }
                     
                     if (typeof progress === 'number') {
-                        download.progress = Math.max(0, Math.min(100, progress));
+                        const newProgress = Math.max(0, Math.min(100, progress));
+                        this.updateProgressWithSmoothing(download, newProgress);
                     }
                     
                     if (message) {
@@ -1579,22 +1879,95 @@
                         download.downloadUrl = download_url;
                     }
                     
-                    if (data.download_speed) {
-                        download.downloadSpeed = data.download_speed;
-                    }
-                    
-                    if (data.eta) {
-                        download.eta = data.eta;
-                    }
-                    
-                    if (data.file_size) {
-                        download.fileSize = data.file_size;
-                    }
-                    
                     download.lastUpdate = new Date();
                     
                     this.updateDownloadsList();
                 }
+            }
+
+            processEnhancedProgressData(download, data) {
+                // Handle enhanced progress metadata
+                if (data.download_speed) {
+                    download.downloadSpeed = data.download_speed;
+                }
+                
+                if (data.eta) {
+                    download.eta = data.eta;
+                }
+                
+                if (data.file_size) {
+                    download.fileSize = data.file_size;
+                }
+                
+                // Handle progress type indicator
+                if (data.progress_type) {
+                    download.progressType = data.progress_type;
+                }
+                
+                // Handle timestamp for progress tracking
+                if (data.timestamp) {
+                    download.progressTimestamp = new Date(data.timestamp);
+                }
+                
+                // Store progress history for smoothing
+                if (typeof data.progress === 'number') {
+                    if (!download.progressHistory) {
+                        download.progressHistory = [];
+                    }
+                    
+                    download.progressHistory.push({
+                        progress: data.progress,
+                        timestamp: new Date(),
+                        type: data.progress_type || 'unknown'
+                    });
+                    
+                    // Keep only last 10 progress updates for smoothing
+                    if (download.progressHistory.length > 10) {
+                        download.progressHistory = download.progressHistory.slice(-10);
+                    }
+                }
+            }
+
+            updateProgressWithSmoothing(download, newProgress) {
+                const currentProgress = download.progress || 0;
+                
+                // If progress jumped significantly, apply smoothing
+                if (Math.abs(newProgress - currentProgress) > 5 && download.status === 'downloading') {
+                    this.animateProgressTransition(download, currentProgress, newProgress);
+                } else {
+                    download.progress = newProgress;
+                }
+            }
+
+            animateProgressTransition(download, startProgress, endProgress) {
+                const duration = 1000; // 1 second transition
+                const steps = 20;
+                const stepDuration = duration / steps;
+                const progressDiff = endProgress - startProgress;
+                const stepSize = progressDiff / steps;
+                
+                let currentStep = 0;
+                
+                const animate = () => {
+                    if (currentStep >= steps || download.status !== 'downloading') {
+                        download.progress = endProgress;
+                        this.updateDownloadsList();
+                        return;
+                    }
+                    
+                    currentStep++;
+                    const easedProgress = this.easeInOutQuad(currentStep / steps);
+                    download.progress = startProgress + (progressDiff * easedProgress);
+                    
+                    this.updateDownloadsList();
+                    setTimeout(animate, stepDuration);
+                };
+                
+                animate();
+            }
+
+            easeInOutQuad(t) {
+                return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
             }
 
             updateConnectionStatus(status, text) {
