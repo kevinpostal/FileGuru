@@ -40,7 +40,7 @@ help:
 	@echo "  docker-clean    - Clean Docker resources"
 	@echo ""
 	@echo "$(YELLOW)Deployment Commands:$(NC)"
-	@echo "  deploy          - Deploy server to Google Cloud Run
+	@echo "  deploy          - Deploy server to Google Cloud Run"
 	@echo "  deploy-local    - Deploy server locally with Docker"
 	@echo ""
 	@echo "$(YELLOW)Utility Commands:$(NC)"
