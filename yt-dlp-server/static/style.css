@@ -1,991 +1,1272 @@
-
-      /* === UNDERGROUND ZINE / HACKER AESTHETIC === */
-
-      /* Reset and Base */
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      body {
-        background: #000000;
-        color: #00ff00;
-        font-family: "Share Tech Mono", "VT323", "Courier New", monospace;
-        font-size: 14px;
-        line-height: 1.4;
-        min-height: 100vh;
-        overflow-x: hidden;
-        position: relative;
-      }
-
-      /* Subtle scanline effect */
-      body::before {
-        content: "";
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: repeating-linear-gradient(
-          0deg,
-          transparent,
-          transparent 2px,
-          rgba(0, 255, 0, 0.03) 2px,
-          rgba(0, 255, 0, 0.03) 4px
-        );
-        pointer-events: none;
-        z-index: 1000;
-      }
-
-      /* Noise texture overlay */
-      body::after {
-        content: "";
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-image: radial-gradient(
-            circle at 25% 25%,
-            rgba(0, 255, 0, 0.02) 0%,
-            transparent 50%
-          ),
-          radial-gradient(
-            circle at 75% 75%,
-            rgba(0, 255, 0, 0.02) 0%,
-            transparent 50%
-          );
-        pointer-events: none;
-        z-index: 999;
-      }
-
-      /* Container */
-      .container {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 20px;
-        position: relative;
-        z-index: 1;
-      }
-
-      /* Header with glitch effect */
-      header {
-        text-align: center;
-        margin-bottom: 40px;
-        border: 2px solid #00cc00;
-        padding: 20px;
-        background: rgba(0, 51, 0, 0.3);
-        position: relative;
-      }
-
-      header::before {
-        content: "";
-        position: absolute;
-        top: -2px;
-        left: -2px;
-        right: -2px;
-        bottom: -2px;
-        background: linear-gradient(45deg, #00ff00, #00cc00, #00ff00);
-        z-index: -1;
-        opacity: 0.1;
-      }
-
-      header h1 {
-        font-family: "VT323", monospace;
-        font-size: 3.5rem;
-        font-weight: normal;
-        color: #00ff00;
-        text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00, 0 0 15px #00ff00;
-        letter-spacing: 3px;
-        margin-bottom: 10px;
-        animation: subtleGlitch 3s infinite;
-      }
-
-      @keyframes subtleGlitch {
-        0%,
-        98% {
-          transform: translate(0);
-        }
-        99% {
-          transform: translate(1px, -1px);
-        }
-        100% {
-          transform: translate(-1px, 1px);
-        }
-      }
-
-      header p {
-        color: #00cc00;
-        font-size: 1.1rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-      }
-
-      /* Main content area */
-      main {
-        background: rgba(10, 10, 10, 0.8);
-        border: 1px solid #004400;
-        padding: 30px;
-        position: relative;
-      }
-
-      main::before {
-        content: "> SYSTEM ACTIVE";
-        position: absolute;
-        top: -12px;
-        left: 20px;
-        background: #000000;
-        color: #00ff00;
-        padding: 0 10px;
-        font-size: 12px;
-        letter-spacing: 1px;
-      }
-
-      /* Connection Status */
-      .status-indicator {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 12px;
-        margin-bottom: 25px;
-        border: 1px solid #004400;
-        background: #0a0a0a;
-        font-family: "VT323", monospace;
-        font-size: 16px;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-      }
-
-      .status-indicator::before {
-        content: "[";
-        margin-right: 8px;
-      }
-
-      .status-indicator::after {
-        content: "]";
-        margin-left: 8px;
-      }
-
-      .status-indicator.connected {
-        color: #00ff00;
-        border-color: #00ff00;
-        text-shadow: 0 0 5px #00ff00;
-      }
-
-      .status-indicator.connecting {
-        color: #ffff00;
-        border-color: #cccc00;
-        animation: blink 1s infinite;
-      }
-
-      .status-indicator.disconnected {
-        color: #ff5555;
-        border-color: #cc0000;
-      }
-
-      @keyframes blink {
-        0%,
-        50% {
-          opacity: 1;
-        }
-        51%,
-        100% {
-          opacity: 0.3;
-        }
-      }
-
-      /* Section Headers */
-      .section-header {
-        color: #00ff00;
-        font-family: "VT323", monospace;
-        font-size: 1.8rem;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        margin-bottom: 20px;
-        border-bottom: 1px solid #00cc00;
-        padding-bottom: 8px;
-        position: relative;
-      }
-
-      .section-header::before {
-        content: ">> ";
-        color: #00cc00;
-      }
-
-      /* Download Form */
-      .download-form {
-        background: rgba(0, 51, 0, 0.1);
-        border: 1px solid #00cc00;
-        padding: 25px;
-        margin-bottom: 30px;
-      }
-
-      .form-group {
-        margin-bottom: 20px;
-      }
-
-      .form-group label {
-        display: block;
-        color: #00cc00;
-        font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 8px;
-      }
-
-      .form-group label::after {
-        content: ":";
-      }
-
-      #url-input {
-        width: 100%;
-        background: #003300;
-        border: 1px solid #00cc00;
-        color: #00ff00;
-        padding: 12px 15px;
-        font-family: "Share Tech Mono", monospace;
-        font-size: 14px;
-        outline: none;
-        transition: all 0.3s ease;
-      }
-
-      #url-input::placeholder {
-        color: #006600;
-        font-style: italic;
-      }
-
-      #url-input:focus {
-        border-color: #00ff00;
-        box-shadow: 0 0 5px #00ff00, inset 0 0 5px rgba(0, 255, 0, 0.1);
-        text-shadow: 0 0 2px #00ff00;
-      }
-
-      #url-input.error {
-        border-color: #ff5555;
-        background: rgba(139, 0, 0, 0.2);
-      }
-
-      /* Submit Button */
-      .submit-btn {
-        background: #000000;
-        border: 2px solid #00ff00;
-        color: #00ff00;
-        padding: 15px 30px;
-        font-family: "VT323", monospace;
-        font-size: 18px;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        width: 100%;
-        position: relative;
-        overflow: hidden;
-      }
-
-      .submit-btn::before {
-        content: "> ";
-      }
-
-      .submit-btn::after {
-        content: " <";
-      }
-
-      .submit-btn:hover {
-        background: #00ff00;
-        color: #000000;
-        text-shadow: none;
-        box-shadow: 0 0 15px #00ff00;
-      }
-
-      .submit-btn:active {
-        transform: scale(0.98);
-      }
-
-      .submit-btn:disabled {
-        border-color: #004400;
-        color: #004400;
-        cursor: not-allowed;
-        background: #000000;
-      }
-
-      .submit-btn:disabled:hover {
-        background: #000000;
-        color: #004400;
-        box-shadow: none;
-      }
-
-      /* Messages Area */
-      .messages-area {
-        margin-bottom: 25px;
-      }
-
-      .message {
-        padding: 12px 15px;
-        margin-bottom: 10px;
-        border: 1px solid;
-        font-family: "Share Tech Mono", monospace;
-        position: relative;
-        animation: slideIn 0.3s ease;
-      }
-
-      .message::before {
-        content: "[SYS] ";
-        font-weight: bold;
-      }
-
-      .message-success {
-        border-color: #00ff00;
-        background: rgba(0, 255, 0, 0.1);
-        color: #00ff00;
-      }
-
-      .message-error {
-        border-color: #ff5555;
-        background: rgba(255, 85, 85, 0.1);
-        color: #ff5555;
-      }
-
-      .message-error::before {
-        content: "[ERR] ";
-      }
-
-      .message-info {
-        border-color: #00cccc;
-        background: rgba(0, 204, 204, 0.1);
-        color: #00cccc;
-      }
-
-      .message-warning {
-        border-color: #ffff00;
-        background: rgba(255, 255, 0, 0.1);
-        color: #ffff00;
-      }
-
-      .message-warning::before {
-        content: "[WARN] ";
-      }
-
-      .message-close {
-        position: absolute;
-        top: 8px;
-        right: 12px;
-        background: none;
-        border: none;
-        color: inherit;
-        cursor: pointer;
-        font-size: 16px;
-        opacity: 0.7;
-      }
-
-      .message-close:hover {
-        opacity: 1;
-      }
-
-      /* Validation Errors */
-      .validation-error {
-        color: #ff5555;
-        background: rgba(139, 0, 0, 0.2);
-        border: 1px solid #8b0000;
-        padding: 8px 12px;
-        margin-top: 8px;
-        font-size: 12px;
-        animation: slideIn 0.3s ease;
-      }
-
-      .validation-error::before {
-        content: "[INPUT ERROR] ";
-        font-weight: bold;
-      }
-
-      /* Downloads List */
-      .downloads-list {
-        background: #0a0a0a;
-        border: 1px solid #004400;
-        padding: 20px;
-        min-height: 150px;
-      }
-
-      .no-downloads {
-        text-align: center;
-        color: #006600;
-        font-style: italic;
-        padding: 40px 20px;
-      }
-
-      .no-downloads::before {
-        content: "[ ";
-      }
-
-      .no-downloads::after {
-        content: " ]";
-      }
-
-      /* Download Items */
-      .download-item {
-        border: 1px solid #004400;
-        background: rgba(0, 51, 0, 0.1);
-        padding: 15px;
-        margin-bottom: 15px;
-        position: relative;
-        transition: all 0.3s ease;
-      }
-
-      .download-item:hover {
-        border-color: #00cc00;
-        background: rgba(0, 51, 0, 0.2);
-      }
-
-      .download-item::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 3px;
-        background: #004400;
-      }
-
-      .download-item.status-pending::before {
-        background: #ffff00;
-        animation: blink 2s infinite;
-      }
-
-      .download-item.status-downloading::before {
-        background: #00cccc;
-        animation: pulse 1.5s infinite;
-      }
-
-      .download-item.status-completed::before {
-        background: #00ff00;
-      }
-
-      .download-item.status-error::before,
-      .download-item.status-failed::before {
-        background: #ff5555;
-      }
-
-      @keyframes pulse {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.3;
-        }
-      }
-
-      /* Download Header */
-      .download-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 12px;
-        gap: 15px;
-      }
-
-      .download-url-container {
-        flex: 1;
-        min-width: 0;
-      }
-
-      .download-url {
-        color: #00ff00;
-        font-weight: bold;
-        display: block;
-        word-break: break-all;
-        margin-bottom: 4px;
-      }
-
-      .download-timestamp {
-        color: #006600;
-        font-size: 11px;
-        text-transform: uppercase;
-      }
-
-      .download-timestamp::before {
-        content: "T: ";
-      }
-
-      /* Status Badge */
-      .status-badge {
-        padding: 4px 12px;
-        border: 1px solid;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        white-space: nowrap;
-        font-family: "VT323", monospace;
-      }
-
-      .status-pending {
-        border-color: #ffff00;
-        color: #ffff00;
-        background: rgba(255, 255, 0, 0.1);
-      }
-
-      .status-downloading {
-        border-color: #00cccc;
-        color: #00cccc;
-        background: rgba(0, 204, 204, 0.1);
-      }
-
-      .status-completed {
-        border-color: #00ff00;
-        color: #00ff00;
-        background: rgba(0, 255, 0, 0.1);
-      }
-
-      .status-error,
-      .status-failed {
-        border-color: #ff5555;
-        color: #ff5555;
-        background: rgba(255, 85, 85, 0.1);
-      }
-
-      /* Progress Bar */
-      .download-progress {
-        margin: 12px 0;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      
-
-      .progress-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 11px;
-        color: #00cc00;
-      }
-
-      .progress-info {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex: 1;
-      }
-
-      .progress-type-indicator {
-        background: rgba(0, 204, 204, 0.2);
-        border: 1px solid #00cccc;
-        color: #00cccc;
-        padding: 1px 4px;
-        font-size: 9px;
-        font-family: "VT323", monospace;
-        letter-spacing: 1px;
-      }
-
-      .progress-bar {
-        flex: 1;
-        height: 14px;
-        background: rgba(0, 51, 0, 0.3);
-        border: 1px solid #00cc00;
-        position: relative;
-        overflow: hidden;
-        border-radius: 2px;
-      }
-
-      
-
-      .progress-fill {
-        height: 100%;
-        background: linear-gradient(
-          90deg,
-          #00cc00 0%,
-          #00ff00 50%,
-          #00cc00 100%
-        );
-        background-size: 200% 100%;
-        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-          transform 0.15s ease-out;
-        position: relative;
-        box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
-        transform-origin: left center;
-      }
-
-      /* Shimmer effect */
-      .progress-fill::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 50%;
-        height: 100%;
-        background: linear-gradient(
-          90deg,
-          transparent 0%,
-          rgba(255, 255, 255, 0.4) 50%,
-          transparent 100%
-        );
-        animation: shimmer 2s infinite;
-      }
-
-      @keyframes shimmer {
-        0% {
-          left: -100%;
-        }
-        100% {
-          left: 200%;
-        }
-      }
-
-      /* Pulsing effect for active downloads */
-      .progress-bar.active {
-        animation: pulse 1.5s infinite alternate;
-      }
-
-      @keyframes pulse {
-        0% {
-          box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
-        }
-        100% {
-          box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
-        }
-      }
-
-      .progress-glow {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 30px;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.6));
-        opacity: 0;
-        transition: opacity 0.3s ease;
-      }
-
-      .progress-bar:hover .progress-glow {
-        opacity: 1;
-      }
-
-      /* Progress type variations */
-      .progress-real .progress-fill {
-        background: linear-gradient(90deg, #00cc00, #00ff00);
-      }
-
-      .progress-simulated .progress-fill {
-        background: linear-gradient(90deg, #cccc00, #ffff00);
-      }
-
-      .progress-simulated .progress-bar {
-        border-color: #cccc00;
-      }
-
-      .progress-simulated .progress-fill::after {
-        background: linear-gradient(
-          90deg,
-          transparent 0%,
-          rgba(255, 255, 255, 0.3) 50%,
-          transparent 100%
-        );
-      }
-
-      .progress-hybrid .progress-fill {
-        background: linear-gradient(90deg, #00cccc, #00ffff);
-      }
-
-      .progress-hybrid .progress-bar {
-        border-color: #00cccc;
-      }
-
-      @keyframes progressScan {
-        0% {
-          transform: translateX(-100%);
-        }
-        100% {
-          transform: translateX(100%);
-        }
-      }
-
-      .progress-text {
-        color: #00ff00;
-        font-size: 12px;
-        font-family: "VT323", monospace;
-        min-width: 50px;
-        text-align: right;
-        text-shadow: 0 0 5px #00ff00;
-      }
-
-      
-
-      .progress-text::after {
-        content: "%";
-      }
-
-      /* Download Details */
-      .download-details {
-        border-top: 1px solid #004400;
-        padding-top: 12px;
-      }
-
-      .download-message {
-        color: #00cc00;
-        font-size: 13px;
-        line-height: 1.4;
-        margin-bottom: 8px;
-      }
-
-      /* Tiny URL Display */
-      .tiny-url-container {
-        margin: 8px 0;
-        padding: 8px;
-        background: rgba(0, 51, 0, 0.2);
-        border: 1px solid #00cc00;
-        font-family: "Share Tech Mono", monospace;
-        position: relative;
-        cursor: pointer;
-      }
-
-      .tiny-url-container::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 3px;
-        background: #00cc00;
-      }
-
-      .tiny-url-label {
-        color: #00cc00;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-right: 8px;
-        display: inline-block;
-      }
-
-      .tiny-url-value {
-        color: #00ff00;
-        font-weight: bold;
-        word-break: break-all;
-        font-size: 13px;
-        text-shadow: 0 0 2px #00ff00;
-        transition: all 0.3s ease;
-      }
-
-      .tiny-url-value:hover {
-        color: #ffffff;
-        text-shadow: 0 0 5px #00ff00;
-      }
-
-      /* Download Links */
-      .download-link {
-        display: inline-block;
-        font-size: 11px;
-        color: #006600;
-        background: rgba(0, 51, 0, 0.3);
-        border: 1px solid #004400;
-        padding: 2px 8px;
-        text-transform: uppercase;
-        text-decoration: none;
-        margin-top: 8px;
-        transition: all 0.3s ease;
-      }
-
-      .download-link::before {
-        content: "↓ ";
-      }
-
-      .download-link:hover {
-        color: #00ff00;
-        border-color: #00cc00;
-        background: rgba(0, 51, 0, 0.5);
-      }
-
-      /* Metadata */
-      .download-metadata {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 8px;
-      }
-
-      .metadata-item {
-        font-size: 11px;
-        color: #006600;
-        background: rgba(0, 51, 0, 0.3);
-        border: 1px solid #004400;
-        padding: 2px 8px;
-        text-transform: uppercase;
-      }
-
-      /* Footer */
-      .system-footer {
-        margin-top: 40px;
-        padding: 15px;
-        border-top: 1px solid #004400;
-        text-align: center;
-        color: #006600;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-      }
-
-      /* Animations */
-      @keyframes slideIn {
-        from {
-          opacity: 0;
-          transform: translateX(-20px);
-        }
-        to {
-          opacity: 1;
-          transform: translateX(0);
-        }
-      }
-
-      /* Loading Animation */
-      .loading-dots::after {
-        content: "";
-        animation: loadingDots 1.5s infinite;
-      }
-
-      @keyframes loadingDots {
-        0%,
-        20% {
-          content: ".";
-        }
-        40% {
-          content: "..";
-        }
-        60%,
-        100% {
-          content: "...";
-        }
-      }
-
-      /* Responsive Design */
-      @media (max-width: 768px) {
-        .container {
-          padding: 15px;
-        }
-
-        header h1 {
-          font-size: 2.5rem;
-          letter-spacing: 2px;
-        }
-
-        main {
-          padding: 20px;
-        }
-
-        .download-header {
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .download-metadata {
-          flex-direction: column;
-          gap: 5px;
-        }
-
-        /* Enhanced progress responsive adjustments */
-        .progress-header {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 4px;
-        }
-
-        .progress-info {
-          font-size: 10px;
-          flex-wrap: wrap;
-        }
-
-        .progress-type-indicator {
-          font-size: 8px;
-        }
-      }
-
-      @media (max-width: 480px) {
-        header h1 {
-          font-size: 2rem;
-          letter-spacing: 1px;
-        }
-
-        .submit-btn {
-          font-size: 16px;
-          padding: 12px 20px;
-        }
-
-        #url-input {
-          font-size: 16px; /* Prevents zoom on iOS */
-        }
-
-        
-
-        .progress-info {
-          font-size: 9px;
-          gap: 6px;
-        }
-
-        .progress-text {
-          font-size: 11px;
-        }
-      }
-
-      /* High contrast mode */
-      @media (prefers-contrast: high) {
-        body {
-          background: #000000;
-          color: #ffffff;
-        }
-
-        .submit-btn,
-        .download-link {
-          border-width: 3px;
-        }
-      }
-
-      /* Enhanced progress bar states */
-      .progress-bar.status-pending {
-        border-color: #ffff00;
-        background: rgba(255, 255, 0, 0.1);
-      }
-
-      .progress-bar.status-pending .progress-fill {
-        background: linear-gradient(90deg, #cccc00, #ffff00);
-        animation: pulse 2s infinite;
-      }
-
-      .progress-bar.status-completed {
-        border-color: #00ff00;
-        background: rgba(0, 255, 0, 0.1);
-      }
-
-      .progress-bar.status-completed .progress-fill {
-        background: linear-gradient(90deg, #00cc00, #00ff00);
-        box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
-      }
-
-      .progress-bar.status-error {
-        border-color: #ff5555;
-        background: rgba(255, 85, 85, 0.1);
-      }
-
-      .progress-bar.status-error .progress-fill {
-        background: linear-gradient(90deg, #cc0000, #ff5555);
-      }
-
-      /* Progress text enhancements */
-      .progress-text.completed {
-        color: #00ff00;
-        text-shadow: 0 0 8px #00ff00;
-      }
-
-      .progress-text.error {
-        color: #ff5555;
-        text-shadow: 0 0 8px #ff5555;
-      }
-
-      /* Reduced motion */
-      @media (prefers-reduced-motion: reduce) {
-        * {
-          animation-duration: 0.01ms !important;
-          animation-iteration-count: 1 !important;
-          transition-duration: 0.01ms !important;
-        }
-      }
-    
+/* === UNDERGROUND ZINE / HACKER AESTHETIC (Enhanced + Mobile Friendly) === */
+
+/* CSS Custom Properties for easier theming */
+:root {
+  --bg: #000000;
+  --scanline-a: rgba(0, 255, 0, 0.03);
+  --scanline-b: rgba(0, 255, 0, 0.03);
+  --primary: #00ff00;
+  --primary-dim: #00cc00;
+  --primary-deep: #004400;
+  --accent-cyan: #00cccc;
+  --accent-cyan-border: #00cccc;
+  --accent-yellow: #ffff00;
+  --accent-yellow-dark: #cccc00;
+  --error: #ff5555;
+  --error-dark: #cc0000;
+  --warning: #ffff00;
+  --info: #00cccc;
+  --muted: #006600;
+  --panel-bg: rgba(0, 51, 0, 0.1);
+  --panel-bg-strong: rgba(0, 51, 0, 0.2);
+  --panel-border: #00cc00;
+  --font-mono-1: "Share Tech Mono", "Courier New", monospace;
+  --font-mono-2: "VT323", monospace;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space: 12px;
+  --space-md: 20px;
+  --space-lg: 30px;
+  --focus-ring: 0 0 0 2px #000, 0 0 0 4px var(--primary);
+  --focus-ring-error: 0 0 0 2px #000, 0 0 0 4px var(--error);
+  --radius-sm: 2px;
+  --radius: 4px;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Safe-area support (iOS notch) */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+}
+
+/* Reset and Base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--primary);
+  font-family: var(--font-mono-1);
+  font-size: 14px;
+  line-height: 1.4;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Subtle scanline effect */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    var(--scanline-a) 2px,
+    var(--scanline-b) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Noise texture overlay */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(
+      circle at 25% 25%,
+      rgba(0, 255, 0, 0.02) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 75% 75%,
+      rgba(0, 255, 0, 0.02) 0%,
+      transparent 50%
+    );
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* Accessibility helpers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  clip: rect(0 0 0 0);
+  overflow: hidden;
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: none;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+input.error:focus-visible {
+  box-shadow: var(--focus-ring-error);
+}
+
+/* Container */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-md);
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+/* Header with glitch effect */
+header {
+  text-align: center;
+  margin-bottom: 40px;
+  border: 2px solid var(--primary-dim);
+  padding: 20px clamp(10px, 4vw, 40px);
+  background: rgba(0, 51, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+header::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(45deg, var(--primary), var(--primary-dim), var(--primary));
+  z-index: -1;
+  opacity: 0.1;
+}
+
+header h1 {
+  font-family: var(--font-mono-2);
+  font-size: clamp(2.2rem, 7vw, 3.5rem);
+  font-weight: normal;
+  color: var(--primary);
+  text-shadow: 0 0 5px var(--primary), 0 0 10px var(--primary), 0 0 15px var(--primary);
+  letter-spacing: 3px;
+  margin-bottom: 10px;
+  animation: subtleGlitch 3s infinite;
+}
+
+@keyframes subtleGlitch {
+  0%,
+  98% {
+    transform: translate(0);
+  }
+  99% {
+    transform: translate(1px, -1px);
+  }
+  100% {
+    transform: translate(-1px, 1px);
+  }
+}
+
+header p {
+  color: var(--primary-dim);
+  font-size: clamp(0.8rem, 2.5vw, 1.1rem);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Main content area */
+main {
+  background: rgba(10, 10, 10, 0.85);
+  border: 1px solid var(--primary-deep);
+  padding: 30px;
+  position: relative;
+  backdrop-filter: blur(2px);
+}
+
+main::before {
+  content: "> SYSTEM ACTIVE";
+  position: absolute;
+  top: -12px;
+  left: 20px;
+  background: var(--bg);
+  color: var(--primary);
+  padding: 0 10px;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+/* Connection Status */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  margin-bottom: 25px;
+  border: 1px solid var(--primary-deep);
+  background: #0a0a0a;
+  font-family: var(--font-mono-2);
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  min-height: 44px;
+}
+
+.status-indicator::before {
+  content: "[";
+  margin-right: 8px;
+}
+
+.status-indicator::after {
+  content: "]";
+  margin-left: 8px;
+}
+
+.status-indicator.connected {
+  color: var(--primary);
+  border-color: var(--primary);
+  text-shadow: 0 0 5px var(--primary);
+}
+
+.status-indicator.connecting {
+  color: var(--accent-yellow);
+  border-color: var(--accent-yellow-dark);
+  animation: blink 1s infinite;
+}
+
+.status-indicator.disconnected {
+  color: var(--error);
+  border-color: var(--error-dark);
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0.3;
+  }
+}
+
+/* Section Headers */
+.section-header {
+  color: var(--primary);
+  font-family: var(--font-mono-2);
+  font-size: 1.8rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--primary-dim);
+  padding-bottom: 8px;
+  position: relative;
+}
+
+.section-header::before {
+  content: ">> ";
+  color: var(--primary-dim);
+}
+
+/* Download Form */
+.download-form {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  padding: 25px;
+  margin-bottom: 30px;
+  border-radius: var(--radius-sm);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  color: var(--primary-dim);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.form-group label::after {
+  content: ":";
+}
+
+#url-input {
+  width: 100%;
+  background: #003300;
+  border: 1px solid var(--panel-border);
+  color: var(--primary);
+  padding: 14px 16px;
+  font-family: var(--font-mono-1);
+  font-size: 16px; /* Prevent mobile zoom */
+  outline: none;
+  transition: var(--transition);
+  border-radius: var(--radius);
+  line-height: 1.2;
+}
+
+#url-input::placeholder {
+  color: var(--muted);
+  font-style: italic;
+}
+
+#url-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 5px var(--primary), inset 0 0 5px rgba(0, 255, 0, 0.1);
+  text-shadow: 0 0 2px var(--primary);
+}
+
+#url-input.error {
+  border-color: var(--error);
+  background: rgba(139, 0, 0, 0.2);
+}
+
+/* Submit Button */
+.submit-btn {
+  background: var(--bg);
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  padding: 16px 30px;
+  font-family: var(--font-mono-2);
+  font-size: 19px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: var(--transition);
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  min-height: 52px;
+  touch-action: manipulation;
+}
+
+.submit-btn::before {
+  content: "> ";
+}
+
+.submit-btn::after {
+  content: " <";
+}
+
+.submit-btn:hover,
+.submit-btn:focus-visible {
+  background: var(--primary);
+  color: var(--bg);
+  text-shadow: none;
+  box-shadow: 0 0 15px var(--primary);
+}
+
+.submit-btn:active {
+  transform: scale(0.985);
+}
+
+.submit-btn:disabled {
+  border-color: var(--primary-deep);
+  color: var(--primary-deep);
+  cursor: not-allowed;
+  background: var(--bg);
+  box-shadow: none;
+}
+
+.submit-btn:disabled:hover {
+  background: var(--bg);
+  color: var(--primary-deep);
+}
+
+/* Messages Area */
+.messages-area {
+  margin-bottom: 25px;
+}
+
+.message {
+  padding: 12px 15px;
+  margin-bottom: 10px;
+  border: 1px solid;
+  font-family: var(--font-mono-1);
+  position: relative;
+  animation: slideIn 0.3s ease;
+  border-radius: var(--radius-sm);
+}
+
+.message::before {
+  content: "[SYS] ";
+  font-weight: bold;
+}
+
+.message-success {
+  border-color: var(--primary);
+  background: rgba(0, 255, 0, 0.1);
+  color: var(--primary);
+}
+
+.message-error {
+  border-color: var(--error);
+  background: rgba(255, 85, 85, 0.1);
+  color: var(--error);
+}
+
+.message-error::before {
+  content: "[ERR] ";
+}
+
+.message-info {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 204, 204, 0.1);
+  color: var(--accent-cyan);
+}
+
+.message-warning {
+  border-color: var(--warning);
+  background: rgba(255, 255, 0, 0.1);
+  color: var(--warning);
+}
+
+.message-warning::before {
+  content: "[WARN] ";
+}
+
+.message-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 18px;
+  opacity: 0.7;
+  line-height: 1;
+}
+
+.message-close:hover {
+  opacity: 1;
+}
+
+/* Validation Errors */
+.validation-error {
+  color: var(--error);
+  background: rgba(139, 0, 0, 0.2);
+  border: 1px solid #8b0000;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  animation: slideIn 0.3s ease;
+  border-radius: var(--radius-sm);
+}
+
+.validation-error::before {
+  content: "[INPUT ERROR] ";
+  font-weight: bold;
+}
+
+/* Downloads List */
+.downloads-list {
+  background: #0a0a0a;
+  border: 1px solid var(--primary-deep);
+  padding: 20px;
+  min-height: 150px;
+  border-radius: var(--radius-sm);
+}
+
+.no-downloads {
+  text-align: center;
+  color: var(--muted);
+  font-style: italic;
+  padding: 40px 20px;
+}
+
+.no-downloads::before {
+  content: "[ ";
+}
+
+.no-downloads::after {
+  content: " ]";
+}
+
+/* Download Items */
+.download-item {
+  border: 1px solid var(--primary-deep);
+  background: var(--panel-bg);
+  padding: 15px;
+  margin-bottom: 15px;
+  position: relative;
+  transition: var(--transition);
+  border-radius: var(--radius-sm);
+}
+
+.download-item:hover {
+  border-color: var(--primary-dim);
+  background: var(--panel-bg-strong);
+}
+
+.download-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--primary-deep);
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.download-item.status-pending::before {
+  background: var(--accent-yellow);
+  animation: blink 2s infinite;
+}
+
+.download-item.status-downloading::before {
+  background: var(--accent-cyan);
+  animation: pulse 1.5s infinite;
+}
+
+.download-item.status-completed::before {
+  background: var(--primary);
+}
+
+.download-item.status-error::before,
+.download-item.status-failed::before {
+  background: var(--error);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Compact variant for very small devices */
+@media (max-width: 420px) {
+  .download-item.compact {
+    padding: 12px 12px 10px 10px;
+  }
+  .download-item.compact .download-header {
+    margin-bottom: 6px;
+  }
+}
+
+/* Download Header */
+.download-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 15px;
+}
+
+.download-url-container {
+  flex: 1;
+  min-width: 0;
+}
+
+.download-url {
+  color: var(--primary);
+  font-weight: bold;
+  display: block;
+  word-break: break-word;
+  margin-bottom: 4px;
+}
+
+.download-timestamp {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.download-timestamp::before {
+  content: "T: ";
+}
+
+/* Status Badge */
+.status-badge {
+  padding: 4px 12px;
+  border: 1px solid;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  font-family: var(--font-mono-2);
+  border-radius: var(--radius-sm);
+  align-self: flex-start;
+}
+
+.status-pending {
+  border-color: var(--accent-yellow);
+  color: var(--accent-yellow);
+  background: rgba(255, 255, 0, 0.1);
+}
+
+.status-downloading {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  background: rgba(0, 204, 204, 0.1);
+}
+
+.status-completed {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(0, 255, 0, 0.1);
+}
+
+.status-error,
+.status-failed {
+  border-color: var(--error);
+  color: var(--error);
+  background: rgba(255, 85, 85, 0.1);
+}
+
+/* Progress Bar */
+.download-progress {
+  margin: 12px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--primary-dim);
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.progress-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.progress-type-indicator {
+  background: rgba(0, 204, 204, 0.2);
+  border: 1px solid var(--accent-cyan-border);
+  color: var(--accent-cyan);
+  padding: 1px 4px;
+  font-size: 9px;
+  font-family: var(--font-mono-2);
+  letter-spacing: 1px;
+  border-radius: var(--radius-sm);
+}
+
+.progress-bar {
+  flex: 1;
+  height: 16px;
+  background: rgba(0, 51, 0, 0.3);
+  border: 1px solid var(--panel-border);
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  will-change: transform;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--primary-dim) 0%,
+    var(--primary) 50%,
+    var(--primary-dim) 100%
+  );
+  background-size: 200% 100%;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s ease-out;
+  position: relative;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+  transform-origin: left center;
+}
+
+/* Shimmer effect */
+.progress-fill::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 200%;
+  }
+}
+
+/* Pulsing effect for active downloads */
+.progress-bar.active {
+  animation: pulse 1.5s infinite alternate;
+}
+
+@keyframes progressGlowPulse {
+  0% {
+    box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
+  }
+}
+
+.progress-glow {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 30px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.6));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.progress-bar:hover .progress-glow {
+  opacity: 1;
+}
+
+/* Progress type variations */
+.progress-real .progress-fill {
+  background: linear-gradient(90deg, var(--primary-dim), var(--primary));
+}
+
+.progress-simulated .progress-fill {
+  background: linear-gradient(90deg, var(--accent-yellow-dark), var(--accent-yellow));
+}
+
+.progress-simulated .progress-bar {
+  border-color: var(--accent-yellow-dark);
+}
+
+.progress-simulated .progress-fill::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+}
+
+.progress-hybrid .progress-fill {
+  background: linear-gradient(90deg, var(--accent-cyan), #00ffff);
+}
+
+.progress-hybrid .progress-bar {
+  border-color: var(--accent-cyan);
+}
+
+@keyframes progressScan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.progress-text {
+  color: var(--primary);
+  font-size: 12px;
+  font-family: var(--font-mono-2);
+  min-width: 50px;
+  text-align: right;
+  text-shadow: 0 0 5px var(--primary);
+  white-space: nowrap;
+}
+
+.progress-text::after {
+  content: "%";
+}
+
+.progress-text.completed {
+  color: var(--primary);
+  text-shadow: 0 0 8px var(--primary);
+}
+
+.progress-text.error {
+  color: var(--error);
+  text-shadow: 0 0 8px var(--error);
+}
+
+/* Overlay percent for tiny screens */
+@media (max-width: 420px) {
+  .progress-bar[data-progress]::before {
+    content: attr(data-progress) "%";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono-2);
+    font-size: 11px;
+    color: var(--bg);
+    mix-blend-mode: screen;
+    text-shadow: 0 0 4px var(--primary);
+  }
+  .download-progress {
+    gap: 8px;
+  }
+  .progress-text {
+    display: none;
+  }
+}
+
+/* Download Details */
+.download-details {
+  border-top: 1px solid var(--primary-deep);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.download-message {
+  color: var(--primary-dim);
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+/* Tiny URL Display */
+.tiny-url-container {
+  margin: 8px 0;
+  padding: 8px 10px 8px 14px;
+  background: var(--panel-bg-strong);
+  border: 1px solid var(--panel-border);
+  font-family: var(--font-mono-1);
+  position: relative;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  overflow-wrap: anywhere;
+}
+
+.tiny-url-container::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--primary-dim);
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.tiny-url-container:active {
+  transform: scale(0.99);
+}
+
+.tiny-url-label {
+  color: var(--primary-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-right: 8px;
+  display: inline-block;
+}
+
+.tiny-url-value {
+  color: var(--primary);
+  font-weight: bold;
+  word-break: break-word;
+  font-size: 13px;
+  text-shadow: 0 0 2px var(--primary);
+  transition: var(--transition);
+  line-height: 1.3;
+}
+
+.tiny-url-value:hover {
+  color: #ffffff;
+  text-shadow: 0 0 5px var(--primary);
+}
+
+/* Download Links */
+.download-link {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--muted);
+  background: rgba(0, 51, 0, 0.3);
+  border: 1px solid var(--primary-deep);
+  padding: 4px 10px;
+  text-transform: uppercase;
+  text-decoration: none;
+  margin-top: 8px;
+  transition: var(--transition);
+  border-radius: var(--radius-sm);
+}
+
+.download-link + .download-link {
+  margin-left: 6px;
+}
+
+.download-link::before {
+  content: "↓ ";
+}
+
+.download-link:hover,
+.download-link:focus-visible {
+  color: var(--primary);
+  border-color: var(--primary-dim);
+  background: rgba(0, 51, 0, 0.5);
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.3);
+}
+
+/* Metadata */
+.download-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.metadata-item {
+  font-size: 11px;
+  color: var(--muted);
+  background: rgba(0, 51, 0, 0.3);
+  border: 1px solid var(--primary-deep);
+  padding: 2px 8px;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.5px;
+}
+
+/* Footer */
+.system-footer {
+  margin-top: 40px;
+  padding: 15px;
+  border-top: 1px solid var(--primary-deep);
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Loading Animation */
+.loading-dots::after {
+  content: "";
+  animation: loadingDots 1.5s infinite;
+}
+
+@keyframes loadingDots {
+  0%,
+  20% {
+    content: ".";
+  }
+  40% {
+    content: "..";
+  }
+  60%,
+  100% {
+    content: "...";
+  }
+}
+
+/* Enhanced progress bar states */
+.progress-bar.status-pending {
+  border-color: var(--accent-yellow);
+  background: rgba(255, 255, 0, 0.1);
+}
+
+.progress-bar.status-pending .progress-fill {
+  background: linear-gradient(90deg, var(--accent-yellow-dark), var(--accent-yellow));
+  animation: pulse 2s infinite;
+}
+
+.progress-bar.status-completed {
+  border-color: var(--primary);
+  background: rgba(0, 255, 0, 0.1);
+}
+
+.progress-bar.status-completed .progress-fill {
+  background: linear-gradient(90deg, var(--primary-dim), var(--primary));
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+}
+
+.progress-bar.status-error {
+  border-color: var(--error);
+  background: rgba(255, 85, 85, 0.1);
+}
+
+.progress-bar.status-error .progress-fill {
+  background: linear-gradient(90deg, var(--error-dark), var(--error));
+}
+
+/* MOBILE & RESPONSIVE LAYERS */
+
+/* Tablet */
+@media (max-width: 900px) {
+  .container {
+    padding: 18px;
+  }
+  main {
+    padding: 24px;
+  }
+  .download-metadata {
+    gap: 8px;
+  }
+}
+
+/* Phablet / Large Mobile */
+@media (max-width: 768px) {
+  .container {
+    padding: 15px;
+  }
+
+  header h1 {
+    letter-spacing: 2px;
+  }
+
+  main {
+    padding: 20px;
+  }
+
+  .download-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .status-badge {
+    align-self: flex-start;
+  }
+
+  .download-metadata {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .progress-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .progress-info {
+    font-size: 10px;
+    flex-wrap: wrap;
+  }
+
+  .progress-type-indicator {
+    font-size: 8px;
+  }
+
+  .submit-btn {
+    font-size: 18px;
+  }
+
+  .message,
+  .download-item {
+    padding: 14px;
+  }
+}
+
+/* Core small mobile */
+@media (max-width: 520px) {
+  .download-item {
+    padding: 14px 14px 12px;
+  }
+
+  .metadata-item {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .progress-bar {
+    height: 14px;
+  }
+
+  .submit-btn {
+    padding: 14px 20px;
+  }
+
+  .download-link {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  header p {
+    font-size: clamp(0.75rem, 3.2vw, 0.95rem);
+  }
+}
+
+/* Very narrow devices */
+@media (max-width: 400px) {
+  body {
+    font-size: 13px;
+  }
+
+  #url-input {
+    font-size: 15px;
+    padding: 12px 14px;
+  }
+
+  .submit-btn {
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+
+  .progress-type-indicator {
+    display: none;
+  }
+
+  .download-url {
+    font-size: 13px;
+  }
+
+  .download-timestamp {
+    font-size: 10px;
+  }
+
+  .status-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+}
+
+/* Ultra narrow fallback */
+@media (max-width: 330px) {
+  header h1 {
+    font-size: 1.85rem;
+  }
+  .download-url {
+    word-break: break-all;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  body {
+    background: #000;
+    color: #fff;
+  }
+  .submit-btn,
+  .download-link {
+    border-width: 3px;
+  }
+  .download-item {
+    outline: 1px solid #fff;
+  }
+}
+
+/* Dark preference (kept same aesthetic but ensure better contrast if system forces color adjustments) */
+@media (prefers-color-scheme: light) {
+  body {
+    background: #010f01;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .progress-fill::after,
+  .progress-bar.active {
+    animation: none !important;
+  }
+}
+
+/* Touch optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .submit-btn,
+  .download-link,
+  .tiny-url-container {
+    -webkit-tap-highlight-color: rgba(0, 255, 0, 0.2);
+  }
+  .download-link:active {
+    transform: scale(0.97);
+  }
+}
+
+/* Utility classes */
+.u-hidden {
+  display: none !important;
+}
+
+.u-inline {
+  display: inline !important;
+}
+
+.u-flex {
+  display: flex !important;
+}
+
+.u-wrap {
+  flex-wrap: wrap !important;
+}
+
+.u-break {
+  word-break: break-word;
+}
+
+/* Print (minimal) */
+@media print {
+  body,
+  main,
+  .container {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .download-item,
+  .download-form,
+  .messages-area {
+    border: 1px solid #000 !important;
+    background: #fff !important;
+  }
+  .submit-btn,
+  .status-indicator,
+  .progress-bar,
+  .progress-fill,
+  header::before,
+  body::before,
+  body::after {
+    display: none !important;
+  }
+}
