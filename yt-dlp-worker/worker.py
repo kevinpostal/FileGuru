@@ -62,14 +62,14 @@ class FallbackProgressGenerator:
         self.phases = {
             "initialization": {
                 "duration_ratio": 0.1,  # 10% of total time
-                "progress_range": (0.0, 15.0),  # 0-15% progress
-                "base_rate": 2.0,  # Faster progress per second for immediate feedback
-                "variance": 0.2,  # Lower variance for smoother initial experience
+                "progress_range": (25.0, 35.0),  # 25-35% progress (aligned with engine start progress)
+                "base_rate": 2.0,  # Moderate progress per second for smooth transition
+                "variance": 0.1,  # Lower variance for smoother initial experience
                 "initial_burst": True  # Flag for rapid initial progress
             },
             "downloading": {
                 "duration_ratio": 0.75,  # 75% of total time
-                "progress_range": (15.0, 85.0),  # 15-85% progress
+                "progress_range": (35.0, 85.0),  # 35-85% progress (aligned with new init range)
                 "base_rate": 0.8,  # Base progress per second
                 "variance": 0.2  # Rate variance factor
             },
@@ -131,12 +131,12 @@ class FallbackProgressGenerator:
         # Apply non-linear progression for more realistic feel
         if phase_name == "initialization":
             # Immediate burst for first few seconds, then steady progress
-            if phase_elapsed < 3.0:  # First 3 seconds get rapid progress
-                burst_progress = min(0.8, phase_elapsed / 3.0)  # Up to 80% of phase range quickly
-                adjusted_ratio = burst_progress + (phase_progress_ratio - burst_progress) * 0.3
+            if phase_elapsed < 2.0:  # First 2 seconds get rapid progress
+                burst_progress = min(0.9, phase_elapsed / 2.0)  # Up to 90% of phase range quickly
+                adjusted_ratio = burst_progress + (phase_progress_ratio - burst_progress) * 0.2
             else:
                 # After initial burst, continue with exponential ramp-up
-                adjusted_ratio = 1 - (1 - phase_progress_ratio) ** 1.5
+                adjusted_ratio = 1 - (1 - phase_progress_ratio) ** 1.3
         elif phase_name == "downloading":
             # Steady progress with slight deceleration
             adjusted_ratio = phase_progress_ratio ** 0.9
@@ -268,7 +268,7 @@ class ProgressState:
         # Progress smoothing parameters
         self.max_history_size = 10
         self.stall_timeout = 15.0  # seconds before considering progress stalled
-        self.fallback_timeout = 2.0  # seconds before activating fallback (reduced for faster response)
+        self.fallback_timeout = 0.5  # seconds before activating fallback (reduced for faster response)
         
         # Initialize fallback progress generator
         self.fallback_generator = None
@@ -1824,8 +1824,12 @@ class DownloadWorker:
                 universal_newlines=True
             )
             
-            # Send progress update after subprocess starts
-            current_progress, metadata = self.manage_progress_coordination(client_id, None)
+            # Send progress update after subprocess starts with initial progress boost
+            progress_state = self.get_or_create_progress_state(client_id)
+            # Set initial progress to 25% to better align with typical yt-dlp first progress reports
+            # This reduces the jarring jump when real progress kicks in
+            progress_state.update_real_progress(25.0)
+            current_progress, metadata = self.manage_progress_coordination(client_id, 25.0)
             self.send_throttled_progress_update(
                 client_id, current_progress, "Download engine started...", url, 
                 metadata=metadata
