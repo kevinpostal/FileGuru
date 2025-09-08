@@ -598,48 +598,81 @@
       .progress-bar {
         flex: 1;
         height: 14px;
-        background: #003300;
+        background: rgba(0, 51, 0, 0.3);
         border: 1px solid #00cc00;
         position: relative;
         overflow: hidden;
+        border-radius: 2px;
       }
 
       .enhanced-progress .progress-bar {
         width: 100%;
-        height: 16px;
+        height: 18px;
       }
 
       .progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, #00cc00, #00ff00);
-        transition: width 0.3s ease-out;
+        background: linear-gradient(
+          90deg,
+          #00cc00 0%,
+          #00ff00 50%,
+          #00cc00 100%
+        );
+        background-size: 200% 100%;
+        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+          transform 0.15s ease-out;
         position: relative;
+        box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        transform-origin: left center;
       }
 
+      /* Shimmer effect */
       .progress-fill::after {
         content: "";
         position: absolute;
         top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: repeating-linear-gradient(
+        left: -100%;
+        width: 50%;
+        height: 100%;
+        background: linear-gradient(
           90deg,
-          transparent,
-          transparent 10px,
-          rgba(255, 255, 255, 0.1) 10px,
-          rgba(255, 255, 255, 0.1) 20px
+          transparent 0%,
+          rgba(255, 255, 255, 0.4) 50%,
+          transparent 100%
         );
-        animation: progressScan 2s linear infinite;
+        animation: shimmer 2s infinite;
+      }
+
+      @keyframes shimmer {
+        0% {
+          left: -100%;
+        }
+        100% {
+          left: 200%;
+        }
+      }
+
+      /* Pulsing effect for active downloads */
+      .progress-bar.active {
+        animation: pulse 1.5s infinite alternate;
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+        }
+        100% {
+          box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
+        }
       }
 
       .progress-glow {
         position: absolute;
         top: 0;
         right: 0;
-        width: 20px;
+        width: 30px;
         height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.4));
+        background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.6));
         opacity: 0;
         transition: opacity 0.3s ease;
       }
@@ -659,6 +692,15 @@
 
       .progress-simulated .progress-bar {
         border-color: #cccc00;
+      }
+
+      .progress-simulated .progress-fill::after {
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.3) 50%,
+          transparent 100%
+        );
       }
 
       .progress-hybrid .progress-fill {
@@ -682,12 +724,13 @@
         color: #00ff00;
         font-size: 12px;
         font-family: "VT323", monospace;
-        min-width: 45px;
+        min-width: 50px;
         text-align: right;
+        text-shadow: 0 0 5px #00ff00;
       }
 
       .enhanced-progress .progress-text {
-        font-size: 13px;
+        font-size: 14px;
         font-weight: bold;
       }
 
@@ -922,6 +965,47 @@
         }
       }
 
+      /* Enhanced progress bar states */
+      .progress-bar.status-pending {
+        border-color: #ffff00;
+        background: rgba(255, 255, 0, 0.1);
+      }
+
+      .progress-bar.status-pending .progress-fill {
+        background: linear-gradient(90deg, #cccc00, #ffff00);
+        animation: pulse 2s infinite;
+      }
+
+      .progress-bar.status-completed {
+        border-color: #00ff00;
+        background: rgba(0, 255, 0, 0.1);
+      }
+
+      .progress-bar.status-completed .progress-fill {
+        background: linear-gradient(90deg, #00cc00, #00ff00);
+        box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+      }
+
+      .progress-bar.status-error {
+        border-color: #ff5555;
+        background: rgba(255, 85, 85, 0.1);
+      }
+
+      .progress-bar.status-error .progress-fill {
+        background: linear-gradient(90deg, #cc0000, #ff5555);
+      }
+
+      /* Progress text enhancements */
+      .progress-text.completed {
+        color: #00ff00;
+        text-shadow: 0 0 8px #00ff00;
+      }
+
+      .progress-text.error {
+        color: #ff5555;
+        text-shadow: 0 0 8px #ff5555;
+      }
+
       /* Reduced motion */
       @media (prefers-reduced-motion: reduce) {
         * {
@@ -1013,6 +1097,10 @@
           this.maxReconnectAttempts = 5;
           this.reconnectDelay = 1000;
           this.maxReconnectDelay = 30000;
+
+          // Enhanced progress properties
+          this.smoothProgress = {};
+          this.progressAnimations = {};
 
           this.initializeEventListeners();
           this.initializeNetworkMonitoring();
@@ -1586,6 +1674,16 @@
             download.progressType
           );
 
+          // Add classes for different states
+          const activeClass = download.status === "downloading" ? "active" : "";
+          const statusClass = `status-${download.status}`;
+          const progressTextClass =
+            download.status === "completed"
+              ? "completed"
+              : download.status === "error"
+              ? "error"
+              : "";
+
           // Build progress info line
           const progressInfo = [];
           if (download.downloadSpeed && download.status === "downloading") {
@@ -1612,11 +1710,11 @@
                                     : ""
                                 }
                             </div>
-                            <div class="progress-text">${progressPercent.toFixed(
-                              1
-                            )}%</div>
+                            <div class="progress-text ${progressTextClass}">${progressPercent.toFixed(
+            1
+          )}%</div>
                         </div>
-                        <div class="progress-bar ${progressTypeClass}">
+                        <div class="progress-bar ${progressTypeClass} ${activeClass} ${statusClass}">
                             <div class="progress-fill" style="width: ${progressPercent}%"></div>
                             <div class="progress-glow"></div>
                         </div>
@@ -2054,11 +2152,16 @@
 
             if (status) {
               download.status = status.toLowerCase();
+
+              // Clean up animations when download completes
+              if (status === "completed" || status === "error") {
+                this.cleanupProgressAnimation(download.id);
+              }
             }
 
             if (typeof progress === "number") {
               const newProgress = Math.max(0, Math.min(100, progress));
-              this.updateProgressWithSmoothing(download, newProgress);
+              this.updateProgressWithVisualFeedback(download, newProgress);
             }
 
             if (message) {
@@ -2124,51 +2227,114 @@
 
         updateProgressWithSmoothing(download, newProgress) {
           const currentProgress = download.progress || 0;
+          const progressDiff = Math.abs(newProgress - currentProgress);
 
-          // If progress jumped significantly, apply smoothing
-          if (
-            Math.abs(newProgress - currentProgress) > 5 &&
-            download.status === "downloading"
-          ) {
-            this.animateProgressTransition(
-              download,
-              currentProgress,
-              newProgress
-            );
+          // Use smooth animation for significant progress jumps
+          if (progressDiff > 2 && download.status === "downloading") {
+            this.updateProgressSmoothly(download.id, newProgress);
           } else {
             download.progress = newProgress;
           }
         }
 
-        animateProgressTransition(download, startProgress, endProgress) {
-          const duration = 1000; // 1 second transition
-          const steps = 20;
-          const stepDuration = duration / steps;
-          const progressDiff = endProgress - startProgress;
-          const stepSize = progressDiff / steps;
+        // Enhanced smooth progress updates with easing
+        updateProgressSmoothly(downloadId, targetProgress, duration = 1000) {
+          if (!this.smoothProgress[downloadId]) {
+            this.smoothProgress[downloadId] = {
+              current: 0,
+              target: 0,
+              animation: null,
+            };
+          }
 
-          let currentStep = 0;
+          const download = this.downloads.find((d) => d.id === downloadId);
+          if (!download) return;
 
-          const animate = () => {
-            if (currentStep >= steps || download.status !== "downloading") {
-              download.progress = endProgress;
+          const progressData = this.smoothProgress[downloadId];
+          progressData.target = targetProgress;
+          progressData.current = download.progress || 0;
+
+          // Cancel existing animation if any
+          if (progressData.animation) {
+            cancelAnimationFrame(progressData.animation);
+          }
+
+          const startTime = performance.now();
+          const startProgress = progressData.current;
+
+          const animate = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            // Use easing function for smooth animation
+            const easedProgress = this.easeOutCubic(progress);
+            progressData.current =
+              startProgress + (targetProgress - startProgress) * easedProgress;
+
+            // Update the download progress
+            if (download) {
+              download.progress = progressData.current;
               this.updateDownloadsList();
-              return;
             }
 
-            currentStep++;
-            const easedProgress = this.easeInOutQuad(currentStep / steps);
-            download.progress = startProgress + progressDiff * easedProgress;
-
-            this.updateDownloadsList();
-            setTimeout(animate, stepDuration);
+            // Continue animation if not complete
+            if (progress < 1 && download.status === "downloading") {
+              progressData.animation = requestAnimationFrame(animate);
+            } else {
+              progressData.animation = null;
+            }
           };
 
-          animate();
+          progressData.animation = requestAnimationFrame(animate);
+        }
+
+        // Easing functions for smooth animations
+        easeOutCubic(t) {
+          return 1 - Math.pow(1 - t, 3);
         }
 
         easeInOutQuad(t) {
           return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        }
+
+        // Clean up progress animations when download completes
+        cleanupProgressAnimation(downloadId) {
+          if (
+            this.smoothProgress[downloadId] &&
+            this.smoothProgress[downloadId].animation
+          ) {
+            cancelAnimationFrame(this.smoothProgress[downloadId].animation);
+          }
+          delete this.smoothProgress[downloadId];
+        }
+
+        // Add micro-animations for small progress updates
+        addProgressMicroAnimation(downloadId) {
+          const progressBar = document.querySelector(
+            `[data-id="${downloadId}"] .progress-fill`
+          );
+          if (progressBar) {
+            progressBar.style.transform = "scaleX(1.02)";
+            setTimeout(() => {
+              if (progressBar) {
+                progressBar.style.transform = "scaleX(1)";
+              }
+            }, 150);
+          }
+        }
+
+        // Enhanced progress update with visual feedback
+        updateProgressWithVisualFeedback(download, newProgress) {
+          const oldProgress = download.progress || 0;
+          const progressDiff = newProgress - oldProgress;
+
+          // Update progress
+          this.updateProgressWithSmoothing(download, newProgress);
+
+          // Add visual feedback for progress updates
+          if (progressDiff > 0 && progressDiff < 5) {
+            setTimeout(() => this.addProgressMicroAnimation(download.id), 100);
+          }
         }
 
         updateConnectionStatus(status, text) {
