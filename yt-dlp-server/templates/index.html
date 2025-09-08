@@ -749,6 +749,7 @@
         border: 1px solid #00cc00;
         font-family: "Share Tech Mono", monospace;
         position: relative;
+        cursor: pointer;
       }
 
       .tiny-url-container::before {
@@ -776,7 +777,6 @@
         word-break: break-all;
         font-size: 13px;
         text-shadow: 0 0 2px #00ff00;
-        cursor: pointer;
         transition: all 0.3s ease;
       }
 
@@ -1601,11 +1601,11 @@
               let messageHtml = download.message || "Processing request";
               if (download.status === "completed" && download.downloadUrl) {
                 messageHtml = `<strong>Download completed successfully</strong><br>
-                        <div class="tiny-url-container">
+                        <div class="tiny-url-container" onclick="navigator.clipboard.writeText('${
+                          download.downloadUrl
+                        }'); this.querySelector('.tiny-url-value').style.color='#FFFF00'; setTimeout(() => this.querySelector('.tiny-url-value').style.color='#00FF00', 500);" title="Click to copy">
                             <span class="tiny-url-label">Tiny URL:</span>
-                            <span class="tiny-url-value" onclick="navigator.clipboard.writeText('${
-                              download.downloadUrl
-                            }'); this.style.color='#FFFF00'; setTimeout(() => this.style.color='#00FF00', 500);" title="Click to copy">${
+                            <span class="tiny-url-value">${
                   download.downloadUrl
                 }</span>
                         </div>
