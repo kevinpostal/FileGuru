@@ -31,6 +31,12 @@ help:
 	@echo "  test-worker     - Run worker tests"
 	@echo "  test-server     - Run server tests"
 	@echo ""
+	@echo "$(YELLOW)Service Commands:$(NC)"
+	@echo "  start-worker    - Start worker as a background service"
+	@echo "  stop-worker     - Stop worker background service"
+	@echo "  status-worker   - Check status of worker background service"
+	@echo "  logs-worker     - View background worker logs"
+	@echo ""
 	@echo "$(YELLOW)Docker Commands (Server):$(NC)"
 	@echo "  docker-build    - Build server Docker image (production)"
 	@echo "  docker-run      - Run server in Docker (production)"
@@ -83,7 +89,47 @@ run-server:
 	@echo "$(YELLOW)Starting server...$(NC)"
 	@cd $(SERVER_DIR) && .venv_3.13.0/bin/python -m uvicorn main:app --reload --host 0.0.0.0 --port 8080
 
+# Service Commands
+.PHONY: start-worker stop-worker status-worker logs-worker
+
+start-worker:
+	@echo "$(YELLOW)Starting worker service...$(NC)"
+	@if [ -f worker.pid ]; then \
+		echo "$(RED)Worker is already running.$(NC)"; \
+	else \
+		cd $(WORKER_DIR) && nohup ./.venv_3.13.0/bin/python worker.py > ../worker.log 2>&1 & echo $! > ../worker.pid; \
+		echo "$(GREEN)✓ Worker service started.$(NC)"; \
+	fi
+
+stop-worker:
+	@echo "$(YELLOW)Stopping worker service...$(NC)"
+	@if [ -f worker.pid ]; then \
+		kill `cat worker.pid`; \
+		rm worker.pid; \
+		echo "$(GREEN)✓ Worker service stopped.$(NC)"; \
+	else \
+		echo "$(RED)Worker is not running.$(NC)"; \
+	fi
+
+status-worker:
+	@echo "$(YELLOW)Checking worker service status...$(NC)"
+	@if [ -f worker.pid ]; then \
+		if ps -p `cat worker.pid` > /dev/null; then \
+			echo "$(GREEN)✓ Worker is running.$(NC)"; \
+		else \
+			echo "$(RED)✗ Worker is not running, but PID file exists.$(NC)"; \
+		fi; \
+	else \
+		echo "$(RED)✗ Worker is not running.$(NC)"; \
+	fi
+
+logs-worker:
+	@echo "$(YELLOW)Tailing worker logs... (Press Ctrl+C to exit)$(NC)"
+	@tail -f worker.log
+
 # Testing commands
+
+
 .PHONY: test-worker
 test-worker:
 	@echo "$(YELLOW)Running worker tests...$(NC)"
