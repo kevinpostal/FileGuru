@@ -755,18 +755,15 @@
       /* Download Links */
       .download-link {
         display: inline-block;
-        background: #000000;
-        border: 2px solid #00ff00;
-        color: #00ff00 !important;
-        text-decoration: none;
-        padding: 10px 20px;
-        margin-top: 10px;
-        font-family: "VT323", monospace;
-        font-size: 16px;
+        font-size: 11px;
+        color: #006600;
+        background: rgba(0, 51, 0, 0.3);
+        border: 1px solid #004400;
+        padding: 2px 8px;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        text-decoration: none;
+        margin-top: 8px;
         transition: all 0.3s ease;
-        position: relative;
       }
 
       .download-link::before {
@@ -774,10 +771,9 @@
       }
 
       .download-link:hover {
-        background: #00ff00;
-        color: #000000 !important;
-        text-shadow: none;
-        box-shadow: 0 0 10px #00ff00;
+        color: #00ff00;
+        border-color: #00cc00;
+        background: rgba(0, 51, 0, 0.5);
       }
 
       /* Metadata */
@@ -945,7 +941,11 @@
 
       <main>
         <!-- Connection Status -->
-        <div id="connection-status" class="status-indicator connecting" style="display: none;">
+        <div
+          id="connection-status"
+          class="status-indicator connecting"
+          style="display: none"
+        >
           <span id="connection-text">Initializing Connection</span>
         </div>
 
